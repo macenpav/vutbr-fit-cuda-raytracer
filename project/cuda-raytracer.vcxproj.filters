@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="headers">
+      <UniqueIdentifier>{66ee0f3d-c879-44d3-aa58-253342860ecb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sources">
+      <UniqueIdentifier>{f110dc40-026a-4f97-9f45-074ea525a00d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="kernels">
+      <UniqueIdentifier>{a0a90e0f-06e1-4c19-80fe-17c73255e6ce}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\bvh.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\camera.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\color.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\constants.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\light.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\mathematics.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\phong.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\plane.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ray.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\scene.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\sphere.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\src\kernel.cu">
+      <Filter>kernels</Filter>
+    </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\main.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
