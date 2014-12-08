@@ -43,15 +43,15 @@ cudaGraphicsResource_t cudaResourceBuffer;
 /** @var cudaGraphicsResource_t cuda texture resource */
 cudaGraphicsResource_t cudaResourceTexture;
 
-float hmm = 3.0f;
-	float hmm2 = 3.0f;
-	float hmm3 = -7.f;
-extern "C" void launchRTKernel(uchar3* , uint32, uint32, Sphere*, Plane*, PointLight*, PhongMaterial*, Camera*, cuBVHnode*);
+
+extern "C" void launchRTKernel(uchar3* , uint32, uint32, Sphere*, Plane*, PointLight*, PhongMaterial*, Camera*,Plane*, cuBVHnode*);
 
 float deltaTime = 0.0f;
 float fps = 0.0f;
 float delta;
 bool switchb = true;
+
+float focalLength = FOCALLENGTH;
 
 /**
 * 1. Maps the the PBO (Pixel Buffer Object) to a data pointer
@@ -60,6 +60,14 @@ bool switchb = true;
 */ 
 void runCuda()
 {		
+	static float shiftx = 3.0f;
+	static float shifty = 3.0f;
+	static float shiftz = -13.f;
+
+	//static float shiftx = 0.0f;
+	//static float shifty = 15.0f;
+	//static float shiftz = -3.f;
+
 	uchar3* data;
 	size_t numBytes;
 
@@ -67,35 +75,41 @@ void runCuda()
 	// cudaGraphicsMapResources(1, &cudaResourceTexture, 0);
 	cudaGraphicsResourceGetMappedPointer((void **)&data, &numBytes, cudaResourceBuffer);
 	
-	hmm += 0.01f;
-	hmm2 += 0.02f;
-	
-	if (hmm3 > 9.f)
+#ifdef CAMERASHIFT
+	if (shiftz > 6.f)
 		switchb = false;
-	if (hmm3 < -7.f) {
+	if (shiftz < -13.f) {
 		switchb = true;
-		hmm = 3.f;
-		hmm2 = 3.f;
 	}
 	
 	if(switchb) {
-		hmm3 += 0.1f;
-		hmm += 0.01f;
-		hmm2 += 0.02f;
+		shiftz += 0.1f;
+		//shiftx += 0.1f;
+		shifty += 0.1f;
 	}
 	else {
-		hmm3 -= 0.1f;
-		hmm -= 0.01f;
-		hmm2 -= 0.02f;
+		shiftz -= 0.1f;
+		//shiftx -= 0.1f;
+		shifty -= 0.1f;
 	}
+#endif
+	Camera* cam = scene.getCamera();
 
-
-	scene.getCamera()->lookAt(make_float3(hmm, hmm2, hmm3),  // eye
+	cam->lookAt(make_float3(shiftx, shifty, shiftz),  // eye
 		make_float3(0.f, 0.f, 1.f),   // target
 		make_float3(0.f, 1.f, 0.f),   // sky
 		30, (float)WINDOW_WIDTH/WINDOW_HEIGHT);
+	
+	Plane focalPlane;
 
-	launchRTKernel(data, WINDOW_WIDTH, WINDOW_HEIGHT, scene.getSpheres(), scene.getPlanes(), scene.getLights(), scene.getMaterials(), scene.getCamera(), cuBVHTree);		
+#ifdef DEPTHOFFIELD
+	float3 possition;
+	float3 dirrection = make_float3(cam->direction.x,cam->direction.y,cam->direction.z);
+	possition = CUDA::float3_add(cam->position,CUDA::float3_mult(focalLength,cam->direction));
+	
+	focalPlane.set(dirrection,possition,NUM_MATERIALS);//bez materialu 
+#endif	
+	launchRTKernel(data, WINDOW_WIDTH, WINDOW_HEIGHT, scene.getSpheres(), scene.getPlanes(), scene.getLights(), scene.getMaterials(), scene.getCamera(), &focalPlane, cuBVHTree);		
 
 	cudaGraphicsUnmapResources(1, &cudaResourceBuffer, 0);
 	// cudaGraphicsUnmapResources(1, &cudaResourceTexture, 0);	
@@ -137,7 +151,7 @@ void display()
 
 	deltaTime += delta;
 	deltaTime /= 2.0f;
-	fps = deltaTime;
+	fps = 1.f/ deltaTime;
 
 	std::cout << std::fixed << fps << std::endl;
 }
@@ -182,11 +196,16 @@ void initMaterials() {
 	Color green; green.set(0.f, 1.f, 0.f);
 	Color yellow; yellow.set(1.f, 1.f, 0.f);
 	Color white; white.set(1.f, 1.f, 1.f);
+	Color whiteD; whiteD.set(0.75,0.75,0.75);
+	Color black; black.set(0.20,0.20,0.20);
 
 	Color c1; c1.set(0.15, 0.1, 0.1);
 	Color c2; c2.set(0.1, 0.05, 0.05);
 	Color c3; c3.set(0.25, 0, 0);
 	Color c4; c4.set(0.15, 0.1, 0.1);
+	Color c5; c5.set(0.15,0.15,0.15);
+	Color c6; c6.set(0.f, 0.f, 0.f);
+
 
 	PhongMaterial matBlue; matBlue.set(blue, white, c1, 15);
 	scene.add(matBlue); // MATERIAL_BLUE
@@ -196,18 +215,22 @@ void initMaterials() {
 	scene.add(matGreen); // MATERIAL_GREEN
 	PhongMaterial matYellow; matYellow.set(yellow, white, c4, 15);
 	scene.add(matYellow); // MATERIAL_YELLOW
+	PhongMaterial matBlack; matBlack.set(black, white, c6, 30);
+	scene.add(matBlack); // MATERIAL_BLACK
+	PhongMaterial matWhite; matWhite.set(whiteD, white, c5, 15);
+	scene.add(matWhite); // MATERIAL_WHITE
 }
 
 void initSpheres() {
-	
-	srand (time(NULL));
+	const int MATSCOUNT = 6;
+	const int materials[MATSCOUNT] = {MATERIAL_BLUE,MATERIAL_RED,MATERIAL_YELLOW,MATERIAL_BLACK,MATERIAL_WHITE,MATERIAL_CHECKER};
+
+	//srand (time(NULL));
 	for (int i = 0; i < NUM_SPHERES; ++i) {
 		Sphere s;
-		s.set(make_float3((static_cast<float>(rand()) / static_cast <float>(RAND_MAX)) * 10.f - 5.f, 
-						  (static_cast<float>(rand()) / static_cast <float>(RAND_MAX)) * 10.f,
-						  0),
-						  static_cast<float>(rand()) / static_cast <float>(RAND_MAX) * 1.f,
-						  rand() % NUM_MATERIALS);
+		//s.set(make_float3(-1.14,  -1.14 , 4.8),2.f, i);
+		s.set(make_float3(-10.5+i*2 ,  8.5-i , -4.5+i*2.f),1.5,  materials[i % MATSCOUNT]);
+		//s.set(make_float3(9.5 ,  -0.5 , 14.5),1.f,  rand() % NUM_MATERIALS);
 		scene.add(s);
 	}
 	
@@ -238,11 +261,11 @@ void initSpheres() {
 void initPlanes() {
 	Plane p1; p1.set(make_float3(0, 0, 1), make_float3(0, 0, 15), MATERIAL_BLUE);
 	scene.add(p1); // vzadu
-	Plane p2; p2.set(make_float3(0, 1, 0), make_float3(0, -1.5, 0), MATERIAL_RED);
+	Plane p2; p2.set(make_float3(0, 1, 0), make_float3(0, -1.5, 0), MATERIAL_CHECKER);//red
 	scene.add(p2); // podlaha
-	Plane p3; p3.set(make_float3(1, 0, 0), make_float3(-10, 0, 0), MATERIAL_GREEN);
+	Plane p3; p3.set(make_float3(1, 0, 0), make_float3(-10, 0, 0), MATERIAL_YELLOW);
 	scene.add(p3); // leva strana
-	Plane p4; p4.set(make_float3(-1, 0, 0), make_float3(10, 0, 0), MATERIAL_YELLOW);
+	Plane p4; p4.set(make_float3(-1, 0, 0), make_float3(10, 0, 0), MATERIAL_GREEN);
 	scene.add(p4); // prava strana
 }
 
@@ -258,7 +281,6 @@ void initScene() {
 	initSpheres();
 	initPlanes();
 	initLights();
-	
 	//scene.add(PointLight(make_float3(0, 10, 0), Color(1, 1, 1)));
 
 	/*Sphere s(make_float3(8.f, -4.f, 0.f), 2.f, matRed);
@@ -288,6 +310,25 @@ void initScene() {
 	// cudaMemcpy(dev_sceneStats, scene.getSceneStats() , sizeof(SceneStats), cudaMemcpyHostToDevice);	
 }
 
+void processSpecialKeys(int key, int x, int y) 
+{
+	switch(key)
+	{
+		case GLUT_KEY_UP: focalLength += 0.5;break;
+		case GLUT_KEY_DOWN:focalLength -= 0.5; ; break;
+		case 27: 
+			exit(1); 
+			break;
+	};
+	if (focalLength < 3.0) { //omezeni kdy to jeste vypada jakz takz rozumes
+		focalLength = 0.0;	
+	}
+	if (focalLength > 15) {
+	
+		focalLength = 15;
+	}
+}
+
 /**
 * Initializes the OpenGL part of the app
 *
@@ -301,7 +342,7 @@ void initGL(int argc, char** argv)
 	glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 	glutCreateWindow(APP_NAME);
 	glutDisplayFunc(display);
-
+	glutSpecialFunc(processSpecialKeys);
 	// check for necessary OpenGL extensions
 	glewInit();
 	if (!glewIsSupported("GL_VERSION_2_0")) {

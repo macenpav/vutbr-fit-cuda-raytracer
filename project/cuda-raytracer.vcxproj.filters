@@ -45,6 +45,9 @@
     <ClInclude Include="..\src\sphere.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\proceduraltexture.h">
+      <Filter>headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\src\kernel.cu">

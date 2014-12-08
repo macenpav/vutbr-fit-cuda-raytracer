@@ -9,6 +9,7 @@
 
 #include "scene.h"
 #include "phong.h"
+#include "proceduraltexture.h"
 
 #include "bvh.h"
 
@@ -17,6 +18,7 @@ __constant__ Sphere cst_spheres[NUM_SPHERES];
 __constant__ PointLight cst_lights[NUM_LIGHTS];
 __constant__ Plane cst_planes[NUM_PLANES];
 __constant__ PhongMaterial cst_materials[NUM_MATERIALS];
+__constant__ Plane cst_FocalPlane;
 
 using namespace CUDA;
 
@@ -137,6 +139,48 @@ __device__ HitInfo intersectRayWithScene(Ray const& ray, cuBVHnode* tree)
 	return hitInfo;	
 }
 
+__device__ float IntensityMult(float3 lightPos, float3 hitPoint, cuBVHnode* tree)
+{
+		const int shadowrayCount = 19;
+		float3 origin[shadowrayCount];
+		float value = 0;
+		origin[0] =  make_float3(lightPos.x + LIGHTRADIUS, lightPos.y, lightPos.z); //umisteni vychozich bodu paprsku okolo primarniho paprsku
+		origin[1] =  make_float3(lightPos.x - LIGHTRADIUS, lightPos.y, lightPos.z); 
+		origin[2] =  make_float3(lightPos.x , lightPos.y + LIGHTRADIUS, lightPos.z); 
+		origin[3] =  make_float3(lightPos.x , lightPos.y - LIGHTRADIUS, lightPos.z); 
+		origin[4] =  make_float3(lightPos.x , lightPos.y, lightPos.z + LIGHTRADIUS); 
+		origin[5] =  make_float3(lightPos.x , lightPos.y, lightPos.z - LIGHTRADIUS); 
+
+		origin[6] =  make_float3(lightPos.x , lightPos.y, lightPos.z); 
+
+		origin[7] =  make_float3(lightPos.x + LIGHTRADIUS/2.f, lightPos.y, lightPos.z); //umisteni vychozich bodu paprsku okolo primarniho paprsku
+		origin[8] =  make_float3(lightPos.x - LIGHTRADIUS/2.f, lightPos.y, lightPos.z); 
+		origin[9] =  make_float3(lightPos.x , lightPos.y + LIGHTRADIUS/2.f, lightPos.z); 
+		origin[10] =  make_float3(lightPos.x , lightPos.y - LIGHTRADIUS/2.f, lightPos.z); 
+		origin[11] =  make_float3(lightPos.x , lightPos.y, lightPos.z + LIGHTRADIUS/2.f); 
+		origin[12] =  make_float3(lightPos.x , lightPos.y, lightPos.z - LIGHTRADIUS/2.f);
+		
+		origin[13] =  make_float3(lightPos.x + LIGHTRADIUS*2.f, lightPos.y, lightPos.z); //umisteni vychozich bodu paprsku okolo primarniho paprsku
+		origin[14] =  make_float3(lightPos.x - LIGHTRADIUS*2.f, lightPos.y, lightPos.z); 
+		origin[15] =  make_float3(lightPos.x , lightPos.y + LIGHTRADIUS*2.f, lightPos.z); 
+		origin[16] =  make_float3(lightPos.x , lightPos.y - LIGHTRADIUS*2.f, lightPos.z); 
+		origin[17] =  make_float3(lightPos.x , lightPos.y, lightPos.z + LIGHTRADIUS*2.f); 
+		origin[18] =  make_float3(lightPos.x , lightPos.y, lightPos.z - LIGHTRADIUS*2.f); 
+
+		for (int i =0; i<shadowrayCount; i++){
+			Ray r = Ray(origin[i], CUDA::float3_sub(hitPoint,origin[i]));
+			
+			HitInfo shadowHit = intersectRayWithScene(r, tree);
+			if ((shadowHit.hit) && (fabs(shadowHit.t - CUDA::length(CUDA::float3_sub(hitPoint, origin[i]))) < 0.001f)) 
+			{
+				value += 1.f/shadowrayCount;
+			}
+			
+		}
+		return value;
+	
+}
+
 
 __device__ Color TraceRay(const Ray &ray, int recursion, cuBVHnode* tree)
 {
@@ -145,9 +189,18 @@ __device__ Color TraceRay(const Ray &ray, int recursion, cuBVHnode* tree)
 	HitInfo hitInfo = intersectRayWithScene(ray, tree);
 	if (hitInfo.hit)
 	{				
-		const int matID = hitInfo.materialId;
-		color = cst_materials[matID].ambient;
-		const float3 hitPoint = hitInfo.point;		
+		const float3 hitPoint = hitInfo.point;
+		int matID;
+		if (hitInfo.materialId == MATERIAL_CHECKER)
+		{
+			matID  = CheckerProcedural(MATERIAL_WHITE, MATERIAL_BLACK, hitPoint);
+		} else
+		{
+			 matID = hitInfo.materialId;
+		}
+		
+
+		color = cst_materials[matID].ambient;		
 		const float3 hitNormal = hitInfo.normal;
 		for (uint32 i = 0; i < NUM_LIGHTS; ++i)
 		{	
@@ -156,17 +209,24 @@ __device__ Color TraceRay(const Ray &ray, int recursion, cuBVHnode* tree)
 			//const float3 shadowDir = CUDA::normalize(CUDA::float3_sub(lightPos, hitPoint));
 			const float3 shadowDir = cst_lights[i].getShadowRay(hitPoint).direction;
 
-			float intensity = fabs(CUDA::dot(hitNormal, shadowDir));		
+			float intensity = fabs(CUDA::dot(hitNormal, shadowDir));
+#ifdef SOFTSHADOWS
+			intensity = intensity * IntensityMult(lightPos,hitPoint,tree);
+			if (intensity > 0.f){
+#endif
 
+
+#ifndef SOFTSHADOWS
 			//if (true /*intensity > 0.f*/) { // only if there is enought light
 			Ray lightRay = Ray(cst_lights[i].position, CUDA::float3_sub(hitPoint, lightPos));
 
 			HitInfo shadowHit = intersectRayWithScene(lightRay, tree);
 
-			if ((shadowHit.hit) && (fabs(shadowHit.t - CUDA::length(CUDA::float3_sub(hitPoint, lightPos))) < 0.05f)) 
+			if ((shadowHit.hit) && (fabs(shadowHit.t - CUDA::length(CUDA::float3_sub(hitPoint, lightPos))) < 0.01f)) 
 				//if ((shadowHit.hit) && (shadowHit.t < CUDA::length(CUDA::float3_sub(hitPoint, lightPos)) + 0.0001f)) 
 			{
-				color.accumulate(CUDA::mult(cst_materials[hitInfo.materialId].diffuse, cst_lights[i].color), intensity);
+#endif
+				color.accumulate(CUDA::mult(cst_materials[matID].diffuse, cst_lights[i].color), intensity);
 
 				if (cst_materials[matID].shininess > 0.f) {
 					float3 shineDir = CUDA::float3_sub(shadowDir, CUDA::float3_mult(2.0f * CUDA::dot(shadowDir, hitNormal), hitNormal));
@@ -174,9 +234,11 @@ __device__ Color TraceRay(const Ray &ray, int recursion, cuBVHnode* tree)
 					intensity = pow(intensity, cst_materials[matID].shininess);					
 					intensity = min(intensity, 10000.0f);
 
-					color.accumulate(mult(cst_materials[matID].specular, cst_lights[i].color), intensity);
+					color.accumulate(CUDA::mult(cst_materials[matID].specular, cst_lights[i].color), intensity);
 				}
+
 			}
+
 			//}
 		}
 		//reflected ray
@@ -193,6 +255,43 @@ __device__ Color TraceRay(const Ray &ray, int recursion, cuBVHnode* tree)
 
 	return color;
 }	
+
+
+__device__ Color DepthOfFieldRayTrace(const Ray &ray, int recursion, cuBVHnode* tree) 
+{
+	HitInfo hit;
+	Color c;
+	c.set(0,0,0);
+	c.accumulate(TraceRay(ray,recursion,tree),0.20);
+	hit = cst_FocalPlane.intersect(ray);
+	
+	if (hit.hit) {
+		hit.point = ray.getPoint(hit.t);
+		float3 origin1,origin2,origin3,origin4;
+		origin1 =  make_float3(ray.origin.x+LENSRADIUS,ray.origin.y, ray.origin.z); //umisteni vychozich bodu paprsku okolo primarniho paprsku
+		origin2 =  make_float3(ray.origin.x-LENSRADIUS,ray.origin.y, ray.origin.z);
+		origin3 =  make_float3(ray.origin.x,ray.origin.y+LENSRADIUS, ray.origin.z);
+		origin4 =  make_float3(ray.origin.x,ray.origin.y-LENSRADIUS, ray.origin.z);
+
+		Ray r1,r2,r3,r4;
+		r1 = Ray(origin1, CUDA::float3_sub(hit.point,origin1));  //paprsky se potkaji v miste hloubky ostrosti
+		r2 = Ray(origin2, CUDA::float3_sub(hit.point,origin2));
+		r3 = Ray(origin3, CUDA::float3_sub(hit.point,origin3));
+		r4 = Ray(origin4, CUDA::float3_sub(hit.point,origin4));
+
+		Color c1,c2,c3,c4;
+		c1 = TraceRay(r1, recursion, tree);
+		c2 = TraceRay(r2, recursion, tree);
+		c3 = TraceRay(r3, recursion, tree);
+		c4 = TraceRay(r4, recursion, tree);
+
+		c.accumulate(c1,0.20);
+		c.accumulate(c2,0.20);
+		c.accumulate(c3,0.20);
+		c.accumulate(c4,0.20);
+	}
+	return c;
+}
 
 /**
 * CUDA kernel
@@ -272,8 +371,18 @@ __global__ void RTKernel(uchar3* data, cuBVHnode* tree, uint32 width, uint32 hei
 	float x = (2.f*X/WINDOW_WIDTH - 1.f);
 	float y = (2.f*Y/WINDOW_HEIGHT - 1.f);
 
+	Ray r = cst_camera.getRay(x, y);
+	Color c;
 
-	Color c = TraceRay(cst_camera.getRay(x, y), 15, tree);
+#ifndef DEPTHOFFIELD
+	c = TraceRay(r,15,tree);
+#endif
+
+#ifdef DEPTHOFFIELD
+	c = DepthOfFieldRayTrace(r,15,tree);
+	
+#endif
+	
 
 	uint32 p = Y * WINDOW_WIDTH + X;
 
@@ -285,6 +394,7 @@ __global__ void RTKernel(uchar3* data, cuBVHnode* tree, uint32 width, uint32 hei
 }
 
 
+
 /**
 * Wrapper for the CUDA kernel
 *
@@ -293,7 +403,7 @@ __global__ void RTKernel(uchar3* data, cuBVHnode* tree, uint32 width, uint32 hei
 * @param uint32 height
 * @param float time
 */
-extern "C" void launchRTKernel(uchar3* data, uint32 imageWidth, uint32 imageHeight, Sphere* spheres, Plane* planes, PointLight* lights, PhongMaterial* materials, Camera* camera, cuBVHnode* tree)
+extern "C" void launchRTKernel(uchar3* data, uint32 imageWidth, uint32 imageHeight, Sphere* spheres, Plane* planes, PointLight* lights, PhongMaterial* materials, Camera* camera, Plane* focalPlane, cuBVHnode* tree)
 {   
 #ifdef BILINEAR_SAMPLING
 	dim3 threadsPerBlock(THREADS_PER_BLOCK, THREADS_PER_BLOCK, 1); // 64 threads ~ 8*8 -> based on this shared memory for sampling is allocated !!!
@@ -314,7 +424,8 @@ extern "C" void launchRTKernel(uchar3* data, uint32 imageWidth, uint32 imageHeig
 	cudaMemcpyToSymbol(cst_planes, planes, NUM_PLANES * sizeof(Plane));
 	cudaMemcpyToSymbol(cst_lights, lights, NUM_LIGHTS * sizeof(PointLight));
 	cudaMemcpyToSymbol(cst_materials, materials, NUM_MATERIALS * sizeof(PhongMaterial));	
-
+	
+	cudaMemcpyToSymbol(cst_FocalPlane, focalPlane, sizeof(Plane));	
 
 	RTKernel<<<numBlocks, threadsPerBlock>>>(data, tree, imageWidth, imageHeight);
 
