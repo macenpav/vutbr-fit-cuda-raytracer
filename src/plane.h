@@ -28,6 +28,7 @@ struct Plane
 		return hit;
 	}			
 
+	uint32 id;
 	float3 normal;
 	float d;
 	uint32 materialId;

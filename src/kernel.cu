@@ -12,6 +12,9 @@
 #include "proceduraltexture.h"
 
 #include "bvh.h"
+#ifdef BUILD_WITH_KDTREE
+	#include "kdtree.h"
+#endif
 
 __constant__ Camera cst_camera;
 __constant__ Sphere cst_spheres[NUM_SPHERES];
@@ -21,6 +24,8 @@ __constant__ PhongMaterial cst_materials[NUM_MATERIALS];
 __constant__ Plane cst_FocalPlane;
 
 using namespace CUDA;
+
+#define DEBUG
 
 /**
 * Checks for error and if found writes to cerr and exits program. 
@@ -35,23 +40,60 @@ void checkCUDAError()
 	}
 }
 
+#ifdef BUILD_WITH_KDTREE
+namespace CUDA {
+	__device__ HitInfo recursiveIntersect(Ray const& ray, KDNode* kdTree)
+	{
+		HitInfo bbHit = kdTree->intersect(ray);
+		if (bbHit.hit)
+		{			
+			if (!kdTree->left && !kdTree->right)
+			{				
+				HitInfo sphereHit;
+				float t = FLT_MAX;
+				int32 sphereId = NO_HIT;
 
-__device__ HitInfo intersectRayWithScene(Ray const& ray, cuBVHnode* tree)
+				for (uint32 i = 0; i < kdTree->countSpheres; ++i)
+				{
+					HitInfo currentHit = kdTree->spheres[i].intersect(ray);
+					if (currentHit.hit && currentHit.t < t)
+						sphereHit = currentHit;						
+										
+				}				
+				return sphereHit;
+			}
+			else
+			{
+				HitInfo leftHit = recursiveIntersect(ray, kdTree->left);
+				if (leftHit.hit)
+					return leftHit;
+				HitInfo rightHit = recursiveIntersect(ray, kdTree->right);		
+				if (rightHit.hit)
+					return rightHit;
+			}
+
+		}		
+		return HitInfo(); // false
+	}
+}
+#endif
+
+__device__ HitInfo intersectRayWithScene(Ray const& ray, void* accelerationStructure)
 {
-	HitInfo hitInfo, hit;
+	HitInfo hitInfo, hit, kdHit;
 
 	float st = FLT_MAX;
 	float pt = FLT_MAX;
 	int maxPi = NO_HIT;
 	int maxSi = NO_HIT;
 
-	uint32 i;
-	// SPHERES
-#ifdef USE_BVH
+#if defined BUILD_WITH_BVH
+		cuBVHnode* bvhTree = (cuBVHnode*) accelerationStructure;
+
 		while (true) {
-			if (!tree->prev && !tree->next) {
+			if (!bvhTree->prev && !bvhTree->next) {
 				for (uint32 i = 0; i < SPLIT_LIMIT; i++) {
-					hit = tree->leaves[i].sphere.intersect(ray);
+					hit = bvhTree->leaves[i].sphere.intersect(ray);
 					if (hit.hit)
 					{
 						if (st > hit.t)
@@ -65,27 +107,33 @@ __device__ HitInfo intersectRayWithScene(Ray const& ray, cuBVHnode* tree)
 			}
 
 			
-			if (tree->prev) {
-				hit = tree->prev->intersect(ray);
+			if (bvhTree->prev) {
+				hit = bvhTree->prev->intersect(ray);
 				if (hit.hit) {
-					tree = tree->prev;
+					bvhTree = bvhTree->prev;
 					continue;
 				}
 			}
-			if (tree->next) {
-				hit = tree->next->intersect(ray);
+			if (bvhTree->next) {
+				hit = bvhTree->next->intersect(ray);
 				if (hit.hit) {
-					tree = tree->next;
+					bvhTree = bvhTree->next;
 					continue;
 				}
 			}
 			break;
 		}
-			
-		
-		
+#elif defined BUILD_WITH_KDTREE	
+	CUDA::KDNode* kdTree = (CUDA::KDNode*) accelerationStructure;
+
+	kdHit = CUDA::recursiveIntersect(ray, kdTree);
+	if (kdHit.hit)
+	{
+		st = kdHit.t;
+		maxSi = kdHit.sphereId;
+	}
 #else
-	for (i = 0; i < NUM_SPHERES; ++i)
+	for (uint32 i = 0; i < NUM_SPHERES; ++i)
 	{
 		hit = cst_spheres[i].intersect(ray);
 		if (hit.hit)
@@ -97,8 +145,8 @@ __device__ HitInfo intersectRayWithScene(Ray const& ray, cuBVHnode* tree)
 			}	
 		}
 	}
-#endif
-	for (i = 0; i < NUM_PLANES; ++i){
+	#endif
+	for (uint32 i = 0; i < NUM_PLANES; ++i){
 		hit = cst_planes[i].intersect(ray);
 		if (hit.hit){
 			if (pt > hit.t){
@@ -127,9 +175,12 @@ __device__ HitInfo intersectRayWithScene(Ray const& ray, cuBVHnode* tree)
 		hitInfo.t = st;
 		hitInfo.point = ray.getPoint(st);
 
-#ifdef USE_BVH
-		hitInfo.normal = tree->leaves[maxSi].sphere.getNormal(hitInfo.point);		
-		hitInfo.materialId = tree->leaves[maxSi].sphere.materialId;
+#if defined BUILD_WITH_BVH
+		hitInfo.normal = bvhTree->leaves[maxSi].sphere.getNormal(hitInfo.point);		
+		hitInfo.materialId = bvhTree->leaves[maxSi].sphere.materialId;
+#elif defined BUILD_WITH_KDTREE
+		hitInfo.normal = cst_spheres[maxSi].getNormal(hitInfo.point);
+		hitInfo.materialId = cst_spheres[maxSi].materialId;
 #else
 		hitInfo.normal = cst_spheres[maxSi].getNormal(hitInfo.point);		
 		hitInfo.materialId = cst_spheres[maxSi].materialId;
@@ -139,7 +190,7 @@ __device__ HitInfo intersectRayWithScene(Ray const& ray, cuBVHnode* tree)
 	return hitInfo;	
 }
 
-__device__ float IntensityMult(float3 lightPos, float3 hitPoint, cuBVHnode* tree)
+__device__ float IntensityMult(float3 lightPos, float3 hitPoint, void* accelerationStructure)
 {
 		const int shadowrayCount = 19;
 		float3 origin[shadowrayCount];
@@ -170,7 +221,7 @@ __device__ float IntensityMult(float3 lightPos, float3 hitPoint, cuBVHnode* tree
 		for (int i =0; i<shadowrayCount; i++){
 			Ray r = Ray(origin[i], CUDA::float3_sub(hitPoint,origin[i]));
 			
-			HitInfo shadowHit = intersectRayWithScene(r, tree);
+			HitInfo shadowHit = intersectRayWithScene(r, accelerationStructure);
 			if ((shadowHit.hit) && (fabs(shadowHit.t - CUDA::length(CUDA::float3_sub(hitPoint, origin[i]))) < 0.001f)) 
 			{
 				value += 1.f/shadowrayCount;
@@ -182,11 +233,11 @@ __device__ float IntensityMult(float3 lightPos, float3 hitPoint, cuBVHnode* tree
 }
 
 
-__device__ Color TraceRay(const Ray &ray, int recursion, cuBVHnode* tree)
+__device__ Color TraceRay(const Ray &ray, int recursion, void* accelerationStructure)
 {
 	Color color; color.set(0.f, 0.f, 0.f);
 
-	HitInfo hitInfo = intersectRayWithScene(ray, tree);
+	HitInfo hitInfo = intersectRayWithScene(ray, accelerationStructure);
 	if (hitInfo.hit)
 	{				
 		const float3 hitPoint = hitInfo.point;
@@ -211,7 +262,7 @@ __device__ Color TraceRay(const Ray &ray, int recursion, cuBVHnode* tree)
 
 			float intensity = fabs(CUDA::dot(hitNormal, shadowDir));
 #ifdef SOFTSHADOWS
-			intensity = intensity * IntensityMult(lightPos,hitPoint,tree);
+			intensity = intensity * IntensityMult(lightPos,hitPoint,accelerationStructure);
 			if (intensity > 0.f){
 #endif
 
@@ -220,7 +271,7 @@ __device__ Color TraceRay(const Ray &ray, int recursion, cuBVHnode* tree)
 			//if (true /*intensity > 0.f*/) { // only if there is enought light
 			Ray lightRay = Ray(cst_lights[i].position, CUDA::float3_sub(hitPoint, lightPos));
 
-			HitInfo shadowHit = intersectRayWithScene(lightRay, tree);
+			HitInfo shadowHit = intersectRayWithScene(lightRay, accelerationStructure);
 
 			if ((shadowHit.hit) && (fabs(shadowHit.t - CUDA::length(CUDA::float3_sub(hitPoint, lightPos))) < 0.01f)) 
 				//if ((shadowHit.hit) && (shadowHit.t < CUDA::length(CUDA::float3_sub(hitPoint, lightPos)) + 0.0001f)) 
@@ -247,7 +298,7 @@ __device__ Color TraceRay(const Ray &ray, int recursion, cuBVHnode* tree)
 			rray.ShiftStart(1e-5);
 
 
-			Color rcolor = TraceRay(rray, recursion-1, tree);
+			Color rcolor = TraceRay(rray, recursion-1, accelerationStructure);
 			//        color *= 1-phong.GetReflectance();
 			color.accumulate(rcolor, cst_materials[matID].reflectance);
 		}	
@@ -257,12 +308,12 @@ __device__ Color TraceRay(const Ray &ray, int recursion, cuBVHnode* tree)
 }	
 
 
-__device__ Color DepthOfFieldRayTrace(const Ray &ray, int recursion, cuBVHnode* tree) 
+__device__ Color DepthOfFieldRayTrace(const Ray &ray, int recursion, void* accelerationStructure) 
 {
 	HitInfo hit;
 	Color c;
 	c.set(0,0,0);
-	c.accumulate(TraceRay(ray,recursion,tree),0.20);
+	c.accumulate(TraceRay(ray,recursion,accelerationStructure),0.20);
 	hit = cst_FocalPlane.intersect(ray);
 	
 	if (hit.hit) {
@@ -280,10 +331,10 @@ __device__ Color DepthOfFieldRayTrace(const Ray &ray, int recursion, cuBVHnode* 
 		r4 = Ray(origin4, CUDA::float3_sub(hit.point,origin4));
 
 		Color c1,c2,c3,c4;
-		c1 = TraceRay(r1, recursion, tree);
-		c2 = TraceRay(r2, recursion, tree);
-		c3 = TraceRay(r3, recursion, tree);
-		c4 = TraceRay(r4, recursion, tree);
+		c1 = TraceRay(r1, recursion, accelerationStructure);
+		c2 = TraceRay(r2, recursion, accelerationStructure);
+		c3 = TraceRay(r3, recursion, accelerationStructure);
+		c4 = TraceRay(r4, recursion, accelerationStructure);
 
 		c.accumulate(c1,0.20);
 		c.accumulate(c2,0.20);
@@ -303,7 +354,7 @@ __device__ Color DepthOfFieldRayTrace(const Ray &ray, int recursion, cuBVHnode* 
 */
 
 
-__global__ void RTKernel(uchar3* data, cuBVHnode* tree, uint32 width, uint32 height)
+__global__ void RTKernel(uchar3* data, void* accelerationStructure, uint32 width, uint32 height)
 {
 #ifdef BILINEAR_SAMPLING
 	__shared__ Color presampled[64];
@@ -318,7 +369,7 @@ __global__ void RTKernel(uchar3* data, cuBVHnode* tree, uint32 width, uint32 hei
 	float x = (2.f*X/WINDOW_WIDTH - 1.f);
 	float y = (2.f*Y/WINDOW_HEIGHT - 1.f);
 
-	Color c = TraceRay(cst_camera.getRay(x, y), 15, tree);
+	Color c = TraceRay(cst_camera.getRay(x, y), 15, accelerationStructure);
 
 	uint32 spos = threadIdx.x + (threadIdx.y * THREADS_PER_BLOCK);
 
@@ -366,7 +417,7 @@ __global__ void RTKernel(uchar3* data, cuBVHnode* tree, uint32 width, uint32 hei
 #else
 
 	uint32 X = (blockIdx.x * blockDim.x) + threadIdx.x;
-	uint32 Y = (blockIdx.y * blockDim.y) + threadIdx.y;
+	uint32 Y = (blockIdx.y * blockDim.y) + threadIdx.y;	
 
 	float x = (2.f*X/WINDOW_WIDTH - 1.f);
 	float y = (2.f*Y/WINDOW_HEIGHT - 1.f);
@@ -375,11 +426,11 @@ __global__ void RTKernel(uchar3* data, cuBVHnode* tree, uint32 width, uint32 hei
 	Color c;
 
 #ifndef DEPTHOFFIELD
-	c = TraceRay(r,15,tree);
+	c = TraceRay(r,15,accelerationStructure);
 #endif
 
 #ifdef DEPTHOFFIELD
-	c = DepthOfFieldRayTrace(r,15,tree);
+	c = DepthOfFieldRayTrace(r,15,accelerationStructure);
 	
 #endif
 	
@@ -403,7 +454,7 @@ __global__ void RTKernel(uchar3* data, cuBVHnode* tree, uint32 width, uint32 hei
 * @param uint32 height
 * @param float time
 */
-extern "C" void launchRTKernel(uchar3* data, uint32 imageWidth, uint32 imageHeight, Sphere* spheres, Plane* planes, PointLight* lights, PhongMaterial* materials, Camera* camera, Plane* focalPlane, cuBVHnode* tree)
+extern "C" void launchRTKernel(uchar3* data, uint32 imageWidth, uint32 imageHeight, Sphere* spheres, Plane* planes, PointLight* lights, PhongMaterial* materials, Camera* camera, Plane* focalPlane, void* accelerationStructure)
 {   
 #ifdef BILINEAR_SAMPLING
 	dim3 threadsPerBlock(THREADS_PER_BLOCK, THREADS_PER_BLOCK, 1); // 64 threads ~ 8*8 -> based on this shared memory for sampling is allocated !!!
@@ -427,8 +478,7 @@ extern "C" void launchRTKernel(uchar3* data, uint32 imageWidth, uint32 imageHeig
 	
 	cudaMemcpyToSymbol(cst_FocalPlane, focalPlane, sizeof(Plane));	
 
-	RTKernel<<<numBlocks, threadsPerBlock>>>(data, tree, imageWidth, imageHeight);
-
+	RTKernel <<<numBlocks, threadsPerBlock>>>(data, accelerationStructure, imageWidth, imageHeight);
 
 	cudaThreadSynchronize();
 

@@ -48,6 +48,12 @@
     <ClInclude Include="..\src\proceduraltexture.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\kdtree.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\boundingbox.h">
+      <Filter>headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\src\kernel.cu">

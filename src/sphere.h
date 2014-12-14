@@ -9,7 +9,11 @@
 
 struct Sphere
 {
-	
+	float3	center;
+	float	radius;
+	uint32	materialId;
+	uint32	id;
+		
 	void set(float3 const& ce, float const& r, uint32 const& matId)
 	{
 		materialId = matId;
@@ -30,12 +34,14 @@ struct Sphere
 			if (t0 > 0){
 				hit.hit = true;
 				hit.t = t0;
+				hit.sphereId = id;
 				return hit;
 			}
 			float t1 = (-bb + sD) / (2 * aa);
 			if (t1 > 0){
 				hit.hit = true;
 				hit.t = t1;
+				hit.sphereId = id;
 				return hit;
 			}
 		}
@@ -47,10 +53,7 @@ struct Sphere
 		float3 n = CUDA::float3_sub(position, center);
 		return CUDA::normalize(n);		
 	}
-
-	float3	center;
-	float	radius;
-	uint32	materialId;	
+	
 };
 
 

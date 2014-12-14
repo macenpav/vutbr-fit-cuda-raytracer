@@ -39,7 +39,7 @@ enum Materials {
 };
 
 #define NUM_PLANES 4
-#define NUM_SPHERES 10
+#define NUM_SPHERES 500
 #define NUM_LIGHTS 1
 
 #define SUB_CONST 4
@@ -52,10 +52,11 @@ enum Materials {
 
 //#define BILINEAR_SAMPLING 1 
 
-// #define USE_BVH 1
+//  #define BUILD_WITH_BVH
+ //#define BUILD_WITH_KDTREE
 
 #define CAMERASHIFT  //pohyb kamery
-#define DEPTHOFFIELD //hloubka ostrosti
+//#define DEPTHOFFIELD //hloubka ostrosti
 //#define SOFTSHADOWS //hladke stiny
 
 const uint32 SPLIT_LIMIT = 5;

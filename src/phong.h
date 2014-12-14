@@ -16,11 +16,12 @@ struct PhongMaterial
 };
 
 struct HitInfo {
-	bool hit;
+	bool hit = false;
 	float t;
 	float3 point;
 	float3 normal;
 	uint32 materialId;
+	uint32 sphereId;
 };
 
 

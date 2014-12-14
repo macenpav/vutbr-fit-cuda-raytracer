@@ -19,10 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\boundingbox.h" />
     <ClInclude Include="..\src\bvh.h" />
     <ClInclude Include="..\src\camera.h" />
     <ClInclude Include="..\src\color.h" />
     <ClInclude Include="..\src\constants.h" />
+    <ClInclude Include="..\src\kdtree.h" />
     <ClInclude Include="..\src\light.h" />
     <ClInclude Include="..\src\mathematics.h" />
     <ClInclude Include="..\src\phong.h" />

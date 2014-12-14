@@ -16,12 +16,16 @@ struct SceneStats{
 class Scene
 {
 public: 
+	Scene() {
+		planeId = 0;
+		sphereId = 0;
+	}
 	uint32 getSphereCount() const { return spheres.size(); }
 	uint32 getPlaneCount() const { return planes.size(); }
 	uint32 getLightCount() const { return lights.size(); }
 
-	void add(Sphere s) { spheres.push_back(s); }
-	void add(Plane p){ planes.push_back(p); }
+	void add(Sphere s) { s.id = sphereId++; spheres.push_back(s); }
+	void add(Plane p){ p.id = planeId++;  planes.push_back(p); }
 	void add(PointLight p){ lights.push_back(p); }
 	void add(PhongMaterial mat) { materials.push_back(mat); }
 
@@ -47,6 +51,8 @@ private:
 	std::vector<PointLight> lights;
 	Camera camera;
 	SceneStats sceneStats;
+	uint32 sphereId;
+	uint32 planeId;
 };
 
 #endif

@@ -21,13 +21,13 @@
 
 #include <chrono>
 
-
 #include "bvh.h"
+#include "kdtree.h"
 
 
 SceneStats* dev_sceneStats;
 
-cuBVHnode* cuBVHTree;
+void* acceleration_structure;
 
 Scene scene;
 
@@ -44,7 +44,7 @@ cudaGraphicsResource_t cudaResourceBuffer;
 cudaGraphicsResource_t cudaResourceTexture;
 
 
-extern "C" void launchRTKernel(uchar3* , uint32, uint32, Sphere*, Plane*, PointLight*, PhongMaterial*, Camera*,Plane*, cuBVHnode*);
+extern "C" void launchRTKernel(uchar3*, uint32, uint32, Sphere*, Plane*, PointLight*, PhongMaterial*, Camera*, Plane*, void*);
 
 float deltaTime = 0.0f;
 float fps = 0.0f;
@@ -109,7 +109,8 @@ void runCuda()
 	
 	focalPlane.set(dirrection,possition,NUM_MATERIALS);//bez materialu 
 #endif	
-	launchRTKernel(data, WINDOW_WIDTH, WINDOW_HEIGHT, scene.getSpheres(), scene.getPlanes(), scene.getLights(), scene.getMaterials(), scene.getCamera(), &focalPlane, cuBVHTree);		
+
+	launchRTKernel(data, WINDOW_WIDTH, WINDOW_HEIGHT, scene.getSpheres(), scene.getPlanes(), scene.getLights(), scene.getMaterials(), scene.getCamera(), &focalPlane, acceleration_structure);
 
 	cudaGraphicsUnmapResources(1, &cudaResourceBuffer, 0);
 	// cudaGraphicsUnmapResources(1, &cudaResourceTexture, 0);	
@@ -229,12 +230,15 @@ void initSpheres() {
 	for (int i = 0; i < NUM_SPHERES; ++i) {
 		Sphere s;
 		//s.set(make_float3(-1.14,  -1.14 , 4.8),2.f, i);
-		s.set(make_float3(-10.5+i*2 ,  8.5-i , -4.5+i*2.f),1.5,  materials[i % MATSCOUNT]);
+		float f1 = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / 10));
+		float f2 = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / 10));
+		float f3 = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / 10));
+		s.set(make_float3(-10.5+f1*2 ,  8.5-f2 , -4.5+f3*2.f),1.5,  materials[i % MATSCOUNT]);
 		//s.set(make_float3(9.5 ,  -0.5 , 14.5),1.f,  rand() % NUM_MATERIALS);
 		scene.add(s);
 	}
 	
-#ifdef USE_BVH
+#if defined BUILD_WITH_BVH
 
 	std::vector<Sphere> spheres = scene.getSphereVector();
 	std::vector<Obj> objects;
@@ -253,8 +257,14 @@ void initSpheres() {
 	BVHnode tree;
 	tree.buildBVH(objects, nullptr, 0, objects.size() - 1, 'x');
 	
-	cuBVHTree = copyBVHToDevice(&tree);
+	acceleration_structure = copyBVHToDevice(&tree);
 
+#elif defined BUILD_WITH_KDTREE
+	std::vector<Sphere> spheres = scene.getSphereVector();
+
+	CPU::KDNode* kdTree = buildKDTree(spheres);
+
+	acceleration_structure = copyKDTreeToDevice(kdTree);
 #endif
 }
 
