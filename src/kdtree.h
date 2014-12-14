@@ -22,10 +22,8 @@ namespace CUDA {
 		Sphere spheres[SPLIT_LIMIT];
 		uint32 countSpheres = 0;
 
-		__device__ HitInfo intersect(Ray const& ray)
+		__device__ bool intersect(Ray const& ray)
 		{
-			HitInfo hit;		
-
 			float3 dirfrac;
 			// r.dir is unit direction vector of ray
 			dirfrac.x = 1.0f / ray.direction.x;
@@ -40,27 +38,18 @@ namespace CUDA {
 			float t5 = (boundingBox.min.z - ray.origin.z)*dirfrac.z;
 			float t6 = (boundingBox.max.z - ray.origin.z)*dirfrac.z;
 
-			float tmin = max(max(min(t1, t2), min(t3, t4)), min(t5, t6));
-			float tmax = min(min(max(t1, t2), max(t3, t4)), max(t5, t6));
+			float tmin = fmaxf(fmaxf(fminf(t1, t2), fminf(t3, t4)), fminf(t5, t6));
+			float tmax = fminf(fminf(fmaxf(t1, t2), fmaxf(t3, t4)), fmaxf(t5, t6));
 
 			// if tmax < 0, ray (line) is intersecting AABB, but whole AABB is behing us
 			if (tmax < 0)
-			{
-				hit.t = tmax;
-				hit.hit = false;
-			}
+				return false;
 
 			// if tmin > tmax, ray doesn't intersect AABB
 			if (tmin > tmax)
-			{
-				hit.t = tmax;
-				hit.hit = false;
-			}
+				return false;
 
-			hit.t = tmin;
-			hit.hit = true;
-
-			return hit;
+			return true;
 		}
 	};
 }

@@ -42,14 +42,13 @@ void checkCUDAError()
 
 #ifdef BUILD_WITH_KDTREE
 namespace CUDA {
-	__device__ HitInfo recursiveIntersect(Ray const& ray, KDNode* kdTree)
-	{
-		HitInfo bbHit = kdTree->intersect(ray);
-		if (bbHit.hit)
+	__device__ bool recursiveIntersect(HitInfo& hitData, Ray const& ray, KDNode* kdTree)
+	{		
+		if (kdTree->intersect(ray))
 		{			
 			if (!kdTree->left && !kdTree->right)
 			{				
-				HitInfo sphereHit;
+				
 				float t = FLT_MAX;
 				int32 sphereId = NO_HIT;
 
@@ -57,30 +56,29 @@ namespace CUDA {
 				{
 					HitInfo currentHit = kdTree->spheres[i].intersect(ray);
 					if (currentHit.hit && currentHit.t < t)
-						sphereHit = currentHit;						
+						hitData = currentHit;						
 										
 				}				
-				return sphereHit;
+				return hitData.hit;
+				
 			}
 			else
 			{
-				HitInfo leftHit = recursiveIntersect(ray, kdTree->left);
-				if (leftHit.hit)
-					return leftHit;
-				HitInfo rightHit = recursiveIntersect(ray, kdTree->right);		
-				if (rightHit.hit)
-					return rightHit;
+				bool leftHit = recursiveIntersect(hitData, ray, kdTree->left);
+				bool rightHit = recursiveIntersect(hitData, ray, kdTree->right);
+				
+				return leftHit || rightHit;
 			}
 
-		}		
-		return HitInfo(); // false
+		}	
+		return false;
 	}
 }
 #endif
 
 __device__ HitInfo intersectRayWithScene(Ray const& ray, void* accelerationStructure)
 {
-	HitInfo hitInfo, hit, kdHit;
+	HitInfo hitInfo, hit;
 
 	float st = FLT_MAX;
 	float pt = FLT_MAX;
@@ -126,8 +124,8 @@ __device__ HitInfo intersectRayWithScene(Ray const& ray, void* accelerationStruc
 #elif defined BUILD_WITH_KDTREE	
 	CUDA::KDNode* kdTree = (CUDA::KDNode*) accelerationStructure;
 
-	kdHit = CUDA::recursiveIntersect(ray, kdTree);
-	if (kdHit.hit)
+	HitInfo kdHit;
+	if (CUDA::recursiveIntersect(kdHit, ray, kdTree))
 	{
 		st = kdHit.t;
 		maxSi = kdHit.sphereId;
