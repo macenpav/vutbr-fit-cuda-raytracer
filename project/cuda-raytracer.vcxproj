@@ -24,6 +24,7 @@
     <ClInclude Include="..\src\camera.h" />
     <ClInclude Include="..\src\color.h" />
     <ClInclude Include="..\src\constants.h" />
+    <ClInclude Include="..\src\cylinder.h" />
     <ClInclude Include="..\src\kdtree.h" />
     <ClInclude Include="..\src\light.h" />
     <ClInclude Include="..\src\mathematics.h" />
@@ -33,6 +34,7 @@
     <ClInclude Include="..\src\ray.h" />
     <ClInclude Include="..\src\scene.h" />
     <ClInclude Include="..\src\sphere.h" />
+    <ClInclude Include="..\src\triangle.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\src\kernel.cu" />

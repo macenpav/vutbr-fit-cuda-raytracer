@@ -54,6 +54,12 @@
     <ClInclude Include="..\src\boundingbox.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\cylinder.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\triangle.h">
+      <Filter>headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\src\kernel.cu">

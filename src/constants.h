@@ -39,7 +39,8 @@ enum Materials {
 };
 
 #define NUM_PLANES 4
-#define NUM_SPHERES 500
+#define NUM_SPHERES 4
+#define NUM_CYLINDERS 1
 #define NUM_LIGHTS 1
 
 #define SUB_CONST 4
@@ -52,7 +53,7 @@ enum Materials {
 
 //#define BILINEAR_SAMPLING 1 
 
-//  #define BUILD_WITH_BVH
+  //#define BUILD_WITH_BVH
  //#define BUILD_WITH_KDTREE
 
 #define CAMERASHIFT  //pohyb kamery

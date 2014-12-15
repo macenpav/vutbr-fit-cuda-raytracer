@@ -44,7 +44,7 @@ cudaGraphicsResource_t cudaResourceBuffer;
 cudaGraphicsResource_t cudaResourceTexture;
 
 
-extern "C" void launchRTKernel(uchar3*, uint32, uint32, Sphere*, Plane*, PointLight*, PhongMaterial*, Camera*, Plane*, void*);
+extern "C" void launchRTKernel(uchar3*, uint32, uint32, Sphere*, Plane*,Cylinder*, PointLight*, PhongMaterial*, Camera*, Plane*, void*);
 
 float deltaTime = 0.0f;
 float fps = 0.0f;
@@ -110,7 +110,7 @@ void runCuda()
 	focalPlane.set(dirrection,possition,NUM_MATERIALS);//bez materialu 
 #endif	
 
-	launchRTKernel(data, WINDOW_WIDTH, WINDOW_HEIGHT, scene.getSpheres(), scene.getPlanes(), scene.getLights(), scene.getMaterials(), scene.getCamera(), &focalPlane, acceleration_structure);
+	launchRTKernel(data, WINDOW_WIDTH, WINDOW_HEIGHT, scene.getSpheres(), scene.getPlanes(), scene.getCylinders(), scene.getLights(), scene.getMaterials(), scene.getCamera(), &focalPlane, acceleration_structure);
 
 	cudaGraphicsUnmapResources(1, &cudaResourceBuffer, 0);
 	// cudaGraphicsUnmapResources(1, &cudaResourceTexture, 0);	
@@ -279,6 +279,14 @@ void initPlanes() {
 	scene.add(p4); // prava strana
 }
 
+
+void initCylinders() {
+	Cylinder c1;
+	c1.set(make_float3(0.8, 0.2, 0.3), 0.7, make_float3(-10,6, 10), MATERIAL_BLUE);
+	scene.add(c1);
+
+}
+
 void initLights() {
 	Color white; white.set(1.f, 1.f, 1.f);
 	PointLight l1; l1.set(make_float3(-2.f, 10.f, -15.f), white);
@@ -290,6 +298,7 @@ void initScene() {
 	initMaterials();
 	initSpheres();
 	initPlanes();
+	initCylinders();
 	initLights();
 	//scene.add(PointLight(make_float3(0, 10, 0), Color(1, 1, 1)));
 
@@ -325,13 +334,13 @@ void processSpecialKeys(int key, int x, int y)
 	switch(key)
 	{
 		case GLUT_KEY_UP: focalLength += 0.5;break;
-		case GLUT_KEY_DOWN:focalLength -= 0.5; ; break;
+		case GLUT_KEY_DOWN:focalLength -= 0.5; break;
 		case 27: 
 			exit(1); 
 			break;
 	};
 	if (focalLength < 3.0) { //omezeni kdy to jeste vypada jakz takz rozumes
-		focalLength = 0.0;	
+		focalLength = 3.0;	
 	}
 	if (focalLength > 15) {
 	

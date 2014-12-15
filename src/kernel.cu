@@ -20,6 +20,8 @@ __constant__ Camera cst_camera;
 __constant__ Sphere cst_spheres[NUM_SPHERES];
 __constant__ PointLight cst_lights[NUM_LIGHTS];
 __constant__ Plane cst_planes[NUM_PLANES];
+__constant__ Cylinder cst_cylinders[NUM_CYLINDERS];
+
 __constant__ PhongMaterial cst_materials[NUM_MATERIALS];
 __constant__ Plane cst_FocalPlane;
 
@@ -82,8 +84,10 @@ __device__ HitInfo intersectRayWithScene(Ray const& ray, void* accelerationStruc
 
 	float st = FLT_MAX;
 	float pt = FLT_MAX;
+	float ct = FLT_MAX;
 	int maxPi = NO_HIT;
 	int maxSi = NO_HIT;
+	int maxCi = NO_HIT;
 
 #if defined BUILD_WITH_BVH
 		cuBVHnode* bvhTree = (cuBVHnode*) accelerationStructure;
@@ -153,22 +157,41 @@ __device__ HitInfo intersectRayWithScene(Ray const& ray, void* accelerationStruc
 			}			
 		}
 	}
+	for (uint32 i = 0; i < NUM_CYLINDERS; ++i){
+		hit = cst_cylinders[i].intersect(ray);
+		if (hit.hit){
+			if (ct > hit.t){
+				ct = hit.t;
+				maxCi = i;
+			}
+			
+		}
+	
+	}
+
 	// miss
-	if ((maxPi<0) && (maxSi < 0))
-	{ 		
+	if ((maxPi<0) && (maxSi < 0) && (maxCi < 0))
+	{
 		hitInfo.hit = false;
-		return hitInfo;		
+		return hitInfo;
 	}
 	// PLANE hit
-	else if (pt < st)
+	else if ((pt < st) && (pt < ct))
 	{
 		hitInfo.t = pt;
 		hitInfo.point = ray.getPoint(pt);
-		hitInfo.normal = cst_planes[maxPi].normal;		
+		hitInfo.normal = cst_planes[maxPi].normal;
 		hitInfo.materialId = cst_planes[maxPi].materialId;
 	}
+	//CYLINDER hit
+	else if ((ct < st) && (ct < pt)){
+		hitInfo.t = ct;
+		hitInfo.point = ray.getPoint(ct);
+		hitInfo.normal = cst_cylinders[maxCi].getNormal(hitInfo.point);
+		hitInfo.materialId = cst_cylinders[maxCi].materialId;
+	}
 	// SPHERE hit
-	else if (st < pt)
+	else if ((st < pt) && (st < ct))
 	{
 		hitInfo.t = st;
 		hitInfo.point = ray.getPoint(st);
@@ -452,7 +475,7 @@ __global__ void RTKernel(uchar3* data, void* accelerationStructure, uint32 width
 * @param uint32 height
 * @param float time
 */
-extern "C" void launchRTKernel(uchar3* data, uint32 imageWidth, uint32 imageHeight, Sphere* spheres, Plane* planes, PointLight* lights, PhongMaterial* materials, Camera* camera, Plane* focalPlane, void* accelerationStructure)
+extern "C" void launchRTKernel(uchar3* data, uint32 imageWidth, uint32 imageHeight, Sphere* spheres, Plane* planes, Cylinder* cylinders, PointLight* lights, PhongMaterial* materials, Camera* camera, Plane* focalPlane, void* accelerationStructure)
 {   
 #ifdef BILINEAR_SAMPLING
 	dim3 threadsPerBlock(THREADS_PER_BLOCK, THREADS_PER_BLOCK, 1); // 64 threads ~ 8*8 -> based on this shared memory for sampling is allocated !!!
@@ -473,7 +496,8 @@ extern "C" void launchRTKernel(uchar3* data, uint32 imageWidth, uint32 imageHeig
 	cudaMemcpyToSymbol(cst_planes, planes, NUM_PLANES * sizeof(Plane));
 	cudaMemcpyToSymbol(cst_lights, lights, NUM_LIGHTS * sizeof(PointLight));
 	cudaMemcpyToSymbol(cst_materials, materials, NUM_MATERIALS * sizeof(PhongMaterial));	
-	
+	cudaMemcpyToSymbol(cst_cylinders, cylinders, NUM_CYLINDERS * sizeof(Cylinder));
+
 	cudaMemcpyToSymbol(cst_FocalPlane, focalPlane, sizeof(Plane));	
 
 	RTKernel <<<numBlocks, threadsPerBlock>>>(data, accelerationStructure, imageWidth, imageHeight);
