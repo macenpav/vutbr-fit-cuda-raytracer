@@ -61,10 +61,22 @@ struct Cylinder
 		return hit;
 		
 	}
-
+	// podle http://courses.cms.caltech.edu/cs11/material/advcpp/lab7/index.html
 	__device__ float3 getNormal(float3 const& position) const {
-		float3 proj = CUDA::float3_add(center, CUDA::cross((CUDA::cross(CUDA::float3_sub(position, center), direction)) ,direction));		
-		float3 n = CUDA::float3_sub(position, proj);
+
+		float3 V = CUDA::float3_sub(position,center);
+
+		float d2 = CUDA::dot(direction, direction);
+		float dv = CUDA::dot(V, direction);
+
+		float y = dv / d2;
+		
+		float3 n;
+		n.x = direction.x * y;
+		n.y = direction.y * y;
+		n.z = direction.z * y;
+		n = CUDA::float3_sub(V, n);
+
 		return CUDA::normalize(n);		
 	}
 	
