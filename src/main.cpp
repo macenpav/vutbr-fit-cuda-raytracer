@@ -44,7 +44,7 @@ cudaGraphicsResource_t cudaResourceBuffer;
 cudaGraphicsResource_t cudaResourceTexture;
 
 
-extern "C" void launchRTKernel(uchar3*, uint32, uint32, Sphere*, Plane*,Cylinder*, PointLight*, PhongMaterial*, Camera*, Plane*, void*);
+extern "C" void launchRTKernel(uchar3*, uint32, uint32, Sphere*, Plane*,Cylinder*,Triangle*, PointLight*, PhongMaterial*, Camera*, Plane*, void*);
 
 float deltaTime = 0.0f;
 float fps = 0.0f;
@@ -110,7 +110,7 @@ void runCuda()
 	focalPlane.set(dirrection,possition,NUM_MATERIALS);//bez materialu 
 #endif	
 
-	launchRTKernel(data, WINDOW_WIDTH, WINDOW_HEIGHT, scene.getSpheres(), scene.getPlanes(), scene.getCylinders(), scene.getLights(), scene.getMaterials(), scene.getCamera(), &focalPlane, acceleration_structure);
+	launchRTKernel(data, WINDOW_WIDTH, WINDOW_HEIGHT, scene.getSpheres(), scene.getPlanes(), scene.getCylinders(),scene.getTriangles(), scene.getLights(), scene.getMaterials(), scene.getCamera(), &focalPlane, acceleration_structure);
 
 	cudaGraphicsUnmapResources(1, &cudaResourceBuffer, 0);
 	// cudaGraphicsUnmapResources(1, &cudaResourceTexture, 0);	
@@ -282,8 +282,15 @@ void initPlanes() {
 
 void initCylinders() {
 	Cylinder c1;
-	c1.set(make_float3(0.8, 0.2, 0.3), 0.7, make_float3(-10,6, 10), MATERIAL_BLUE);
+	c1.set(make_float3(0.8, 0.2, 0.3), 0.7, make_float3(-10, 6, 10), MATERIAL_YELLOW);
 	scene.add(c1);
+
+}
+
+void initTriangles(){
+	Triangle t1;
+	t1.set(make_float3(2, 0.2, 0.3), make_float3(1, 0.2, 4.0), make_float3(3, 3.0, 0.3), MATERIAL_RED);
+	scene.add(t1);
 
 }
 
@@ -299,6 +306,7 @@ void initScene() {
 	initSpheres();
 	initPlanes();
 	initCylinders();
+	initTriangles();
 	initLights();
 	//scene.add(PointLight(make_float3(0, 10, 0), Color(1, 1, 1)));
 

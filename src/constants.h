@@ -42,6 +42,7 @@ enum Materials {
 #define NUM_SPHERES 4
 #define NUM_CYLINDERS 1
 #define NUM_LIGHTS 1
+#define NUM_TRIANGLES 1
 
 #define SUB_CONST 4
 
