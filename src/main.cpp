@@ -25,6 +25,11 @@
 #include "kdtree.h"
 
 
+static float shiftx = 0.0f;
+static float shifty = 7.5f;
+static float shiftz = -13.f;
+static float num = 0.0f;
+
 SceneStats* dev_sceneStats;
 
 void* acceleration_structure;
@@ -59,11 +64,7 @@ float focalLength = FOCALLENGTH;
 * 3. Unmaps the PBO
 */ 
 void runCuda()
-{		
-	static float shiftx = 3.0f;
-	static float shifty = 3.0f;
-	static float shiftz = -13.f;
-
+{			
 	//static float shiftx = 0.0f;
 	//static float shifty = 15.0f;
 	//static float shiftz = -3.f;
@@ -76,27 +77,15 @@ void runCuda()
 	cudaGraphicsResourceGetMappedPointer((void **)&data, &numBytes, cudaResourceBuffer);
 	
 #ifdef CAMERASHIFT
-	if (shiftz > 6.f)
-		switchb = false;
-	if (shiftz < -13.f) {
-		switchb = true;
-	}
-	
-	if(switchb) {
-		shiftz += 0.1f;
-		//shiftx += 0.1f;
-		shifty += 0.1f;
-	}
-	else {
-		shiftz -= 0.1f;
-		//shiftx -= 0.1f;
-		shifty -= 0.1f;
-	}
+	num += 0.1f;
+	shiftx += (sin(num) * 0.1f);
+	shifty += (cos(num) * 0.1f);
+	shiftz += (sin(num) * 0.1f);
 #endif
 	Camera* cam = scene.getCamera();
 
 	cam->lookAt(make_float3(shiftx, shifty, shiftz),  // eye
-		make_float3(0.f, 0.f, 1.f),   // target
+		make_float3(0.f, 0.f, 15.f),   // target
 		make_float3(0.f, 1.f, 0.f),   // sky
 		30, (float)WINDOW_WIDTH/WINDOW_HEIGHT);
 	
@@ -210,33 +199,30 @@ void initMaterials() {
 
 	PhongMaterial matBlue; matBlue.set(blue, white, c1, 15);
 	scene.add(matBlue); // MATERIAL_BLUE
+	PhongMaterial matBlueRefl; matBlueRefl.set(blue, white, c1, 15, 0.5);
+	scene.add(matBlueRefl); // MATERIAL_BLUE_REFL
 	PhongMaterial matRed; matRed.set(red, white, c2, 15);
 	scene.add(matRed); // MATERIAL_RED
-	PhongMaterial matGreen; matGreen.set(green, white, c3, 20, 0.5);
+	PhongMaterial matRedRefl; matRedRefl.set(red, white, c2, 15, 0.5);
+	scene.add(matRedRefl); // MATERIAL_RED_REFL
+	PhongMaterial matGreen; matGreen.set(green, white, c3, 20);
 	scene.add(matGreen); // MATERIAL_GREEN
+	PhongMaterial matGreenRefl; matGreenRefl.set(green, white, c3, 20, 0.5);
+	scene.add(matGreenRefl); // MATERIAL_GREEN_REFL
 	PhongMaterial matYellow; matYellow.set(yellow, white, c4, 15);
 	scene.add(matYellow); // MATERIAL_YELLOW
 	PhongMaterial matBlack; matBlack.set(black, white, c6, 30);
 	scene.add(matBlack); // MATERIAL_BLACK
 	PhongMaterial matWhite; matWhite.set(whiteD, white, c5, 15);
 	scene.add(matWhite); // MATERIAL_WHITE
+	PhongMaterial matMirror; matMirror.set(whiteD, white, c5, 15, 1.0);
+	scene.add(matMirror); // MATERIAL_WHITE
 }
 
-void initSpheres() {
-	const int MATSCOUNT = 6;
-	const int materials[MATSCOUNT] = {MATERIAL_BLUE,MATERIAL_RED,MATERIAL_YELLOW,MATERIAL_BLACK,MATERIAL_WHITE,MATERIAL_CHECKER};
-
-	//srand (time(NULL));
-	for (int i = 0; i < NUM_SPHERES; ++i) {
-		Sphere s;
-		//s.set(make_float3(-1.14,  -1.14 , 4.8),2.f, i);
-		float f1 = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / 10));
-		float f2 = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / 10));
-		float f3 = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / 10));
-		s.set(make_float3(-10.5+f1*2 ,  8.5-f2 , -4.5+f3*2.f),1.5,  materials[i % MATSCOUNT]);
-		//s.set(make_float3(9.5 ,  -0.5 , 14.5),1.f,  rand() % NUM_MATERIALS);
-		scene.add(s);
-	}
+void initSpheres() {	
+	Sphere s1;
+	s1.set(make_float3(-4,  4 , -2), 4.f, MATERIAL_MIRROR);
+	scene.add(s1);
 	
 #if defined BUILD_WITH_BVH
 
@@ -269,28 +255,58 @@ void initSpheres() {
 }
 
 void initPlanes() {
-	Plane p1; p1.set(make_float3(0, 0, 1), make_float3(0, 0, 15), MATERIAL_BLUE);
+	Plane p1; p1.set(make_float3(0, 0, 1), make_float3(0, 0, 15), MATERIAL_WHITE);
 	scene.add(p1); // vzadu
-	Plane p2; p2.set(make_float3(0, 1, 0), make_float3(0, -1.5, 0), MATERIAL_CHECKER);//red
+	Plane p2; p2.set(make_float3(0, 1, 0), make_float3(0, 0, 0), MATERIAL_WHITE);//red
 	scene.add(p2); // podlaha
-	Plane p3; p3.set(make_float3(1, 0, 0), make_float3(-10, 0, 0), MATERIAL_YELLOW);
+	Plane p3; p3.set(make_float3(1, 0, 0), make_float3(-10, 0, 0), MATERIAL_RED);
 	scene.add(p3); // leva strana
 	Plane p4; p4.set(make_float3(-1, 0, 0), make_float3(10, 0, 0), MATERIAL_GREEN);
 	scene.add(p4); // prava strana
+	Plane p5; p5.set(make_float3(0, -1, 0), make_float3(0, 15, 0), MATERIAL_CHECKER);//red
+	scene.add(p5); // podlaha
+	Plane p6; p6.set(make_float3(0, 0, 1), make_float3(0, 0, -15), MATERIAL_WHITE);
+	scene.add(p6); // podlaha
+
 }
 
 
-void initCylinders() {
+void initCylinders() 
+{
 	Cylinder c1;
-	c1.set(make_float3(0.8, 0.2, 0.3), 0.7, make_float3(-10, 6, 10), MATERIAL_YELLOW);
+	c1.set(make_float3(6, 4, -2), 1.0, make_float3(0, -1, 0), MATERIAL_YELLOW);
 	scene.add(c1);
 
 }
 
+// BOX
+// X <-10, 10> L-R
+// Y <0,15> T-B
+// Z <-inf,15> -B
 void initTriangles(){
-	Triangle t1;
-	t1.set(make_float3(2, 0.2, 0.3), make_float3(1, 0.2, 4.0), make_float3(3, 3.0, 0.3), MATERIAL_RED);
+	Triangle t1;	
+	t1.set(
+		make_float3(-10, 0, 0), // LT
+		make_float3(10, 0, 0), // RT
+		make_float3(0, 15, 10), // B
+	MATERIAL_RED_REFL);
 	scene.add(t1);
+
+	Triangle t2;
+	t2.set(
+		make_float3(-10, 0, 0), // LT
+		make_float3(-10, 15, 15), // t1
+		make_float3(0, 15, 10), // B
+		MATERIAL_GREEN_REFL);
+	scene.add(t2);
+
+	Triangle t3;
+	t3.set(
+		make_float3(10, 15, 15), // t1
+		make_float3(10, 0, 0), // RT
+		make_float3(0, 15, 10), // B
+		MATERIAL_BLUE_REFL);
+	scene.add(t3);
 
 }
 
@@ -390,6 +406,31 @@ void initGL(int argc, char** argv)
 	glOrtho(0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f);   	
 }
 
+void processKeys(unsigned char key, int x, int y)
+{
+	switch (key)
+	{
+		case 'd': 
+			if (shiftx < 9.8f)
+				shiftx += 0.2f;
+			break;
+		case 'a': 
+			if (shiftx > -9.8f)
+				shiftx -= 0.2f;
+			break;
+		case 's':
+			if (shifty < 14.8f)
+				shifty += 0.2f;
+			break;
+		case 'w':
+			if (shifty > 0.2f)
+				shifty -= 0.2f;
+			break;
+		default:
+			break;
+	}
+}
+
 /**
 * Main
 *
@@ -407,6 +448,7 @@ int main(int argc, char** argv)
 
 
 	glutDisplayFunc(display);
+	glutKeyboardFunc(processKeys);
 	glutMainLoop();
 
 	cudaThreadExit();  

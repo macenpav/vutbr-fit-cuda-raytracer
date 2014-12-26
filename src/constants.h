@@ -28,21 +28,25 @@ const uint32 THREADS_PER_BLOCK = 8;
 
 enum Materials {
 	MATERIAL_BLUE = 0,
+	MATERIAL_BLUE_REFL,
 	MATERIAL_RED,
+	MATERIAL_RED_REFL,
 	MATERIAL_GREEN,
+	MATERIAL_GREEN_REFL,
 	MATERIAL_YELLOW,
 	MATERIAL_BLACK,
 	MATERIAL_WHITE,
+	MATERIAL_MIRROR,
 	MATERIAL_CHECKER,
 
 	NUM_MATERIALS
 };
 
-#define NUM_PLANES 4
+#define NUM_PLANES 6
 #define NUM_SPHERES 4
 #define NUM_CYLINDERS 1
 #define NUM_LIGHTS 1
-#define NUM_TRIANGLES 1
+#define NUM_TRIANGLES 3
 
 #define SUB_CONST 4
 
@@ -57,7 +61,7 @@ enum Materials {
   //#define BUILD_WITH_BVH
  //#define BUILD_WITH_KDTREE
 
-#define CAMERASHIFT  //pohyb kamery
+//#define CAMERASHIFT  //pohyb kamery
 //#define DEPTHOFFIELD //hloubka ostrosti
 //#define SOFTSHADOWS //hladke stiny
 
