@@ -26,16 +26,19 @@ const uint32 THREADS_PER_BLOCK = 8;
 #define M_PI_2 1.57079632679489661923
 #define NO_HIT -1
 
-enum Materials {
-	MATERIAL_BLUE = 0,
-	MATERIAL_BLUE_REFL,
-	MATERIAL_RED,
-	MATERIAL_RED_REFL,
+/** 
+ * @brief Materials on device.   
+ * @description Materials on device. Ordered in the same order as defined in scene init.
+ */
+enum CudaMaterials {
+	MATERIAL_RED = 0,
 	MATERIAL_GREEN,
+	MATERIAL_BLUE,				
+	MATERIAL_RED_REFL,
 	MATERIAL_GREEN_REFL,
-	MATERIAL_YELLOW,
-	MATERIAL_BLACK,
+	MATERIAL_BLUE_REFL,	
 	MATERIAL_WHITE,
+	MATERIAL_BLACK,
 	MATERIAL_MIRROR,
 	MATERIAL_CHECKER,
 
@@ -66,5 +69,10 @@ enum Materials {
 //#define SOFTSHADOWS //hladke stiny
 
 const uint32 SPLIT_LIMIT = 5;
+
+/** @brief Default phong shininess for all materials. */
+const float DEFAULT_PHONG_SHININESS = 15.f;
+/** @brief Default phong reflectance for reflective materials. */
+const float DEFAULT_PHONG_REFLECTANCE = 0.5f;
 
 #endif

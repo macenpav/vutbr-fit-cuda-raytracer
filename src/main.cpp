@@ -181,42 +181,15 @@ void initCuda(int argc, char** argv)
 }
 
 void initMaterials() {
-	Color blue; blue.set(0.f, 0.f, 1.f);
-	Color red; red.set(1.f, 0.f, 0.f);
-	Color green; green.set(0.f, 1.f, 0.f);
-	Color yellow; yellow.set(1.f, 1.f, 0.f);
-	Color white; white.set(1.f, 1.f, 1.f);
-	Color whiteD; whiteD.set(0.75,0.75,0.75);
-	Color black; black.set(0.20,0.20,0.20);
-
-	Color c1; c1.set(0.15, 0.1, 0.1);
-	Color c2; c2.set(0.1, 0.05, 0.05);
-	Color c3; c3.set(0.25, 0, 0);
-	Color c4; c4.set(0.15, 0.1, 0.1);
-	Color c5; c5.set(0.15,0.15,0.15);
-	Color c6; c6.set(0.f, 0.f, 0.f);
-
-
-	PhongMaterial matBlue; matBlue.set(blue, white, c1, 15);
-	scene.add(matBlue); // MATERIAL_BLUE
-	PhongMaterial matBlueRefl; matBlueRefl.set(blue, white, c1, 15, 0.5);
-	scene.add(matBlueRefl); // MATERIAL_BLUE_REFL
-	PhongMaterial matRed; matRed.set(red, white, c2, 15);
-	scene.add(matRed); // MATERIAL_RED
-	PhongMaterial matRedRefl; matRedRefl.set(red, white, c2, 15, 0.5);
-	scene.add(matRedRefl); // MATERIAL_RED_REFL
-	PhongMaterial matGreen; matGreen.set(green, white, c3, 20);
-	scene.add(matGreen); // MATERIAL_GREEN
-	PhongMaterial matGreenRefl; matGreenRefl.set(green, white, c3, 20, 0.5);
-	scene.add(matGreenRefl); // MATERIAL_GREEN_REFL
-	PhongMaterial matYellow; matYellow.set(yellow, white, c4, 15);
-	scene.add(matYellow); // MATERIAL_YELLOW
-	PhongMaterial matBlack; matBlack.set(black, white, c6, 30);
-	scene.add(matBlack); // MATERIAL_BLACK
-	PhongMaterial matWhite; matWhite.set(whiteD, white, c5, 15);
-	scene.add(matWhite); // MATERIAL_WHITE
-	PhongMaterial matMirror; matMirror.set(whiteD, white, c5, 15, 1.0);
-	scene.add(matMirror); // MATERIAL_WHITE
+	scene.add(MAT_RED);
+	scene.add(MAT_GREEN);
+	scene.add(MAT_BLUE);
+	scene.add(MAT_RED_REFL);
+	scene.add(MAT_GREEN_REFL);
+	scene.add(MAT_BLUE_REFL);
+	scene.add(MAT_WHITE);
+	scene.add(MAT_BLACK);
+	scene.add(MAT_MIRROR);
 }
 
 void initSpheres() {	
@@ -274,7 +247,7 @@ void initPlanes() {
 void initCylinders() 
 {
 	Cylinder c1;
-	c1.set(make_float3(6, 4, -2), 1.0, make_float3(0, -1, 0), MATERIAL_YELLOW);
+	c1.set(make_float3(6, 4, -2), 1.0, make_float3(0, -1, 0), MATERIAL_GREEN);
 	scene.add(c1);
 
 }
@@ -289,7 +262,7 @@ void initTriangles(){
 		make_float3(-10, 0, 0), // LT
 		make_float3(10, 0, 0), // RT
 		make_float3(0, 15, 10), // B
-	MATERIAL_RED_REFL);
+		MATERIAL_RED_REFL);
 	scene.add(t1);
 
 	Triangle t2;

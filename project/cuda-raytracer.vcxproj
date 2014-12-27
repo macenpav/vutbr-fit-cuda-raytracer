@@ -25,6 +25,7 @@
     <ClInclude Include="..\src\color.h" />
     <ClInclude Include="..\src\constants.h" />
     <ClInclude Include="..\src\cylinder.h" />
+    <ClInclude Include="..\src\hitinfo.h" />
     <ClInclude Include="..\src\kdtree.h" />
     <ClInclude Include="..\src\light.h" />
     <ClInclude Include="..\src\mathematics.h" />

@@ -60,6 +60,9 @@
     <ClInclude Include="..\src\triangle.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\hitinfo.h">
+      <Filter>headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\src\kernel.cu">

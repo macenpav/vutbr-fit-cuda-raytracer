@@ -318,7 +318,7 @@ __device__ Color TraceRay(const Ray &ray, int recursion, void* accelerationStruc
 				//if ((shadowHit.hit) && (shadowHit.t < CUDA::length(CUDA::float3_sub(hitPoint, lightPos)) + 0.0001f)) 
 			{
 #endif
-				color.accumulate(CUDA::mult(cst_materials[matID].diffuse, cst_lights[i].color), intensity);
+				color.accumulate(cst_materials[matID].diffuse * cst_lights[i].color, intensity);
 
 				if (cst_materials[matID].shininess > 0.f) {
 					float3 shineDir = CUDA::float3_sub(shadowDir, CUDA::float3_mult(2.0f * CUDA::dot(shadowDir, hitNormal), hitNormal));
@@ -326,7 +326,7 @@ __device__ Color TraceRay(const Ray &ray, int recursion, void* accelerationStruc
 					intensity = pow(intensity, cst_materials[matID].shininess);					
 					intensity = min(intensity, 10000.0f);
 
-					color.accumulate(CUDA::mult(cst_materials[matID].specular, cst_lights[i].color), intensity);
+					color.accumulate(cst_materials[matID].specular * cst_lights[i].color, intensity);
 				}
 
 			}

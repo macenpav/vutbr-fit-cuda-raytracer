@@ -2,10 +2,9 @@
 #define SPHERE_H
 
 #include "phong.h"
-
 #include "mathematics.h"
-
 #include "ray.h"
+#include "hitinfo.h"
 
 struct Sphere
 {
