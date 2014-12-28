@@ -59,6 +59,21 @@ inline float3& normalize(float3& vector)
 }
 	
 
+inline float3 transform(float3 vec, float r, float3 t)
+{	
+	float3 res = vec;
+
+	res.x = vec.x;
+	res.x = cosf(r) * res.y - sinf(r) * res.z;
+	res.z = sinf(r) * res.y + cosf(r) * res.z;
+
+	res.x += t.x;
+	res.y += t.y;
+	res.z += t.z;
+
+	return res;
+}
+
 
 
 inline float3 operator- (float3 const& l, float3 const& r)

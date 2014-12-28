@@ -29,6 +29,7 @@
     <ClInclude Include="..\src\kdtree.h" />
     <ClInclude Include="..\src\light.h" />
     <ClInclude Include="..\src\mathematics.h" />
+    <ClInclude Include="..\src\objloader.h" />
     <ClInclude Include="..\src\phong.h" />
     <ClInclude Include="..\src\plane.h" />
     <ClInclude Include="..\src\proceduraltexture.h" />
@@ -39,9 +40,6 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\src\kernel.cu" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\src\main.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{AE4E42D9-5B19-4B24-8C15-C40F57918D73}</ProjectGuid>

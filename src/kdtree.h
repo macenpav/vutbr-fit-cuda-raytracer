@@ -3,10 +3,6 @@
 
 #include <vector>
 
-#define __CUDA_INTERNAL_COMPILATION__
-#include <math_functions.h>
-#undef __CUDA_INTERNAL_COMPILATION__
-
 #include "boundingbox.h"
 #include "sphere.h"
 #include "constants.h"

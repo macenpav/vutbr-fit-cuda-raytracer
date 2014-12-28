@@ -11,6 +11,7 @@ typedef short int16;
 typedef int int32;
 
 const char APP_NAME[] = "Ray Tracer";
+const char OBJ[] = "humanoid.obj";
 
 const uint32 WINDOW_WIDTH = 800;
 const uint32 WINDOW_HEIGHT = 600;
@@ -76,11 +77,10 @@ const float DEFAULT_PHONG_SHININESS = 15.f;
 const float DEFAULT_PHONG_REFLECTANCE = 0.5f;
 
 /** @brief max size of constant memory reservered for each primitive */
-#define MAX_SPHERES 32
-#define MAX_TRIANGLES 32
-#define MAX_CYLINDERS 32
-#define MAX_LIGHTS 32
-#define MAX_PLANES 32
-
+#define MAX_SPHERES 1
+#define MAX_TRIANGLES 512
+#define MAX_CYLINDERS 1
+#define MAX_LIGHTS 1
+#define MAX_PLANES 6
 
 #endif

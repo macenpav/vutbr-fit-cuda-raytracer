@@ -58,6 +58,7 @@ public:
 	void add(PointLight p){ lights.push_back(p); }
 	void add(PhongMaterial mat) { materials.push_back(mat); }
 	void setFocalPlane(Plane p) { focalPlane = p; }
+	void setTriangles(std::vector<Triangle> t) { triangles = t;  }
 
 	Camera* getCamera() { return &camera; }
 	Sphere* getSpheres() { return &spheres[0]; }
@@ -69,6 +70,7 @@ public:
 	Plane* getFocalPlane() { return &focalPlane; }	
 
 	std::vector<Sphere> getSphereVector() const { return spheres; }
+	std::vector<Triangle>* getTriangleVector() { return &triangles; }
 
 private:
 	std::vector<PhongMaterial> materials;
