@@ -12,23 +12,24 @@
 #include "proceduraltexture.h"
 
 #include "bvh.h"
-#ifdef BUILD_WITH_KDTREE
+#ifdef ACC_KD_TREE
 	#include "kdtree.h"
 #endif
 
+/** @brief primitives stored in constant memory */
 __constant__ Camera cst_camera;
-__constant__ Sphere cst_spheres[NUM_SPHERES];
-__constant__ PointLight cst_lights[NUM_LIGHTS];
-__constant__ Plane cst_planes[NUM_PLANES];
-__constant__ Cylinder cst_cylinders[NUM_CYLINDERS];
-__constant__ Triangle cst_triangles[NUM_TRIANGLES];
+__constant__ Sphere cst_spheres[MAX_SPHERES];
+__constant__ PointLight cst_lights[MAX_LIGHTS];
+__constant__ Plane cst_planes[MAX_PLANES];
+__constant__ Cylinder cst_cylinders[MAX_CYLINDERS];
+__constant__ Triangle cst_triangles[MAX_TRIANGLES];
 
+/** @brief stats, materials, helpers ... */
+__constant__ SceneStats cst_scenestats;
 __constant__ PhongMaterial cst_materials[NUM_MATERIALS];
-__constant__ Plane cst_FocalPlane;
+__constant__ Plane cst_focalplane;
 
 using namespace CUDA;
-
-#define DEBUG
 
 /**
 * Checks for error and if found writes to cerr and exits program. 
@@ -43,7 +44,7 @@ void checkCUDAError()
 	}
 }
 
-#ifdef BUILD_WITH_KDTREE
+#ifdef ACC_KD_TREE
 namespace CUDA {
 	__device__ bool recursiveIntersect(HitInfo& hitData, Ray const& ray, KDNode* kdTree)
 	{		
@@ -92,7 +93,7 @@ __device__ HitInfo intersectRayWithScene(Ray const& ray, void* accelerationStruc
 	int maxCi = NO_HIT;
 	int maxTi = NO_HIT;
 
-#if defined BUILD_WITH_BVH
+#if defined ACC_BVH
 		cuBVHnode* bvhTree = (cuBVHnode*) accelerationStructure;
 
 		while (true) {
@@ -128,7 +129,7 @@ __device__ HitInfo intersectRayWithScene(Ray const& ray, void* accelerationStruc
 			}
 			break;
 		}
-#elif defined BUILD_WITH_KDTREE	
+#elif defined ACC_KD_TREE	
 	CUDA::KDNode* kdTree = (CUDA::KDNode*) accelerationStructure;
 
 	HitInfo kdHit;
@@ -138,7 +139,7 @@ __device__ HitInfo intersectRayWithScene(Ray const& ray, void* accelerationStruc
 		maxSi = kdHit.sphereId;
 	}
 #else
-	for (uint32 i = 0; i < NUM_SPHERES; ++i)
+	for (uint32 i = 0; i < cst_scenestats.sphereCount; ++i)
 	{
 		hit = cst_spheres[i].intersect(ray);
 		if (hit.hit)
@@ -151,7 +152,7 @@ __device__ HitInfo intersectRayWithScene(Ray const& ray, void* accelerationStruc
 		}
 	}
 	#endif
-	for (uint32 i = 0; i < NUM_PLANES; ++i){
+	for (uint32 i = 0; i < cst_scenestats.planeCount; ++i){
 		hit = cst_planes[i].intersect(ray);
 		if (hit.hit){
 			if (pt > hit.t){
@@ -160,7 +161,7 @@ __device__ HitInfo intersectRayWithScene(Ray const& ray, void* accelerationStruc
 			}			
 		}
 	}
-	for (uint32 i = 0; i < NUM_CYLINDERS; ++i){
+	for (uint32 i = 0; i < cst_scenestats.cylinderCount; ++i){
 		hit = cst_cylinders[i].intersect(ray);
 		if (hit.hit){
 			if (ct > hit.t){
@@ -171,7 +172,7 @@ __device__ HitInfo intersectRayWithScene(Ray const& ray, void* accelerationStruc
 		}
 	
 	}
-	for (uint32 i = 0; i < NUM_TRIANGLES; ++i){
+	for (uint32 i = 0; i < cst_scenestats.triangleCount; ++i){
 		hit = cst_triangles[i].intersect(ray);
 		if (hit.hit){
 			if (tt > hit.t){
@@ -216,10 +217,10 @@ __device__ HitInfo intersectRayWithScene(Ray const& ray, void* accelerationStruc
 		hitInfo.t = st;
 		hitInfo.point = ray.getPoint(st);
 
-#if defined BUILD_WITH_BVH
+#if defined ACC_BVH
 		hitInfo.normal = bvhTree->leaves[maxSi].sphere.getNormal(hitInfo.point);		
 		hitInfo.materialId = bvhTree->leaves[maxSi].sphere.materialId;
-#elif defined BUILD_WITH_KDTREE
+#elif defined ACC_KD_TREE
 		hitInfo.normal = cst_spheres[maxSi].getNormal(hitInfo.point);
 		hitInfo.materialId = cst_spheres[maxSi].materialId;
 #else
@@ -231,47 +232,48 @@ __device__ HitInfo intersectRayWithScene(Ray const& ray, void* accelerationStruc
 	return hitInfo;	
 }
 
+#ifdef OPT_DEPTH_OF_FIELD
 __device__ float IntensityMult(float3 lightPos, float3 hitPoint, void* accelerationStructure)
 {
-		const int shadowrayCount = 19;
-		float3 origin[shadowrayCount];
-		float value = 0;
-		origin[0] =  make_float3(lightPos.x + LIGHTRADIUS, lightPos.y, lightPos.z); //umisteni vychozich bodu paprsku okolo primarniho paprsku
-		origin[1] =  make_float3(lightPos.x - LIGHTRADIUS, lightPos.y, lightPos.z); 
-		origin[2] =  make_float3(lightPos.x , lightPos.y + LIGHTRADIUS, lightPos.z); 
-		origin[3] =  make_float3(lightPos.x , lightPos.y - LIGHTRADIUS, lightPos.z); 
-		origin[4] =  make_float3(lightPos.x , lightPos.y, lightPos.z + LIGHTRADIUS); 
-		origin[5] =  make_float3(lightPos.x , lightPos.y, lightPos.z - LIGHTRADIUS); 
+	const int shadowrayCount = 19;
+	float3 origin[shadowrayCount];
+	float value = 0;
+	origin[0] =  make_float3(lightPos.x + LIGHTRADIUS, lightPos.y, lightPos.z); //umisteni vychozich bodu paprsku okolo primarniho paprsku
+	origin[1] =  make_float3(lightPos.x - LIGHTRADIUS, lightPos.y, lightPos.z); 
+	origin[2] =  make_float3(lightPos.x , lightPos.y + LIGHTRADIUS, lightPos.z); 
+	origin[3] =  make_float3(lightPos.x , lightPos.y - LIGHTRADIUS, lightPos.z); 
+	origin[4] =  make_float3(lightPos.x , lightPos.y, lightPos.z + LIGHTRADIUS); 
+	origin[5] =  make_float3(lightPos.x , lightPos.y, lightPos.z - LIGHTRADIUS); 
 
-		origin[6] =  make_float3(lightPos.x , lightPos.y, lightPos.z); 
+	origin[6] =  make_float3(lightPos.x , lightPos.y, lightPos.z); 
 
-		origin[7] =  make_float3(lightPos.x + LIGHTRADIUS/2.f, lightPos.y, lightPos.z); //umisteni vychozich bodu paprsku okolo primarniho paprsku
-		origin[8] =  make_float3(lightPos.x - LIGHTRADIUS/2.f, lightPos.y, lightPos.z); 
-		origin[9] =  make_float3(lightPos.x , lightPos.y + LIGHTRADIUS/2.f, lightPos.z); 
-		origin[10] =  make_float3(lightPos.x , lightPos.y - LIGHTRADIUS/2.f, lightPos.z); 
-		origin[11] =  make_float3(lightPos.x , lightPos.y, lightPos.z + LIGHTRADIUS/2.f); 
-		origin[12] =  make_float3(lightPos.x , lightPos.y, lightPos.z - LIGHTRADIUS/2.f);
+	origin[7] =  make_float3(lightPos.x + LIGHTRADIUS/2.f, lightPos.y, lightPos.z); //umisteni vychozich bodu paprsku okolo primarniho paprsku
+	origin[8] =  make_float3(lightPos.x - LIGHTRADIUS/2.f, lightPos.y, lightPos.z); 
+	origin[9] =  make_float3(lightPos.x , lightPos.y + LIGHTRADIUS/2.f, lightPos.z); 
+	origin[10] =  make_float3(lightPos.x , lightPos.y - LIGHTRADIUS/2.f, lightPos.z); 
+	origin[11] =  make_float3(lightPos.x , lightPos.y, lightPos.z + LIGHTRADIUS/2.f); 
+	origin[12] =  make_float3(lightPos.x , lightPos.y, lightPos.z - LIGHTRADIUS/2.f);
 		
-		origin[13] =  make_float3(lightPos.x + LIGHTRADIUS*2.f, lightPos.y, lightPos.z); //umisteni vychozich bodu paprsku okolo primarniho paprsku
-		origin[14] =  make_float3(lightPos.x - LIGHTRADIUS*2.f, lightPos.y, lightPos.z); 
-		origin[15] =  make_float3(lightPos.x , lightPos.y + LIGHTRADIUS*2.f, lightPos.z); 
-		origin[16] =  make_float3(lightPos.x , lightPos.y - LIGHTRADIUS*2.f, lightPos.z); 
-		origin[17] =  make_float3(lightPos.x , lightPos.y, lightPos.z + LIGHTRADIUS*2.f); 
-		origin[18] =  make_float3(lightPos.x , lightPos.y, lightPos.z - LIGHTRADIUS*2.f); 
+	origin[13] =  make_float3(lightPos.x + LIGHTRADIUS*2.f, lightPos.y, lightPos.z); //umisteni vychozich bodu paprsku okolo primarniho paprsku
+	origin[14] =  make_float3(lightPos.x - LIGHTRADIUS*2.f, lightPos.y, lightPos.z); 
+	origin[15] =  make_float3(lightPos.x , lightPos.y + LIGHTRADIUS*2.f, lightPos.z); 
+	origin[16] =  make_float3(lightPos.x , lightPos.y - LIGHTRADIUS*2.f, lightPos.z); 
+	origin[17] =  make_float3(lightPos.x , lightPos.y, lightPos.z + LIGHTRADIUS*2.f); 
+	origin[18] =  make_float3(lightPos.x , lightPos.y, lightPos.z - LIGHTRADIUS*2.f); 
 
-		for (int i =0; i<shadowrayCount; i++){
-			Ray r = Ray(origin[i], CUDA::float3_sub(hitPoint,origin[i]));
+	for (int i =0; i<shadowrayCount; i++){
+		Ray r = Ray(origin[i], CUDA::float3_sub(hitPoint,origin[i]));
 			
-			HitInfo shadowHit = intersectRayWithScene(r, accelerationStructure);
-			if ((shadowHit.hit) && (fabs(shadowHit.t - CUDA::length(CUDA::float3_sub(hitPoint, origin[i]))) < 0.001f)) 
-			{
-				value += 1.f/shadowrayCount;
-			}
-			
+		HitInfo shadowHit = intersectRayWithScene(r, accelerationStructure);
+		if ((shadowHit.hit) && (fabs(shadowHit.t - CUDA::length(CUDA::float3_sub(hitPoint, origin[i]))) < 0.001f)) 
+		{
+			value += 1.f/shadowrayCount;
 		}
-		return value;
-	
+			
+	}
+	return value;	
 }
+#endif
 
 
 __device__ Color TraceRay(const Ray &ray, int recursion, void* accelerationStructure)
@@ -286,7 +288,8 @@ __device__ Color TraceRay(const Ray &ray, int recursion, void* accelerationStruc
 		if (hitInfo.materialId == MATERIAL_CHECKER)
 		{
 			matID  = CheckerProcedural(MATERIAL_WHITE, MATERIAL_BLACK, hitPoint);
-		} else
+		} 
+		else
 		{
 			 matID = hitInfo.materialId;
 		}
@@ -294,7 +297,7 @@ __device__ Color TraceRay(const Ray &ray, int recursion, void* accelerationStruc
 
 		color = cst_materials[matID].ambient;		
 		const float3 hitNormal = hitInfo.normal;
-		for (uint32 i = 0; i < NUM_LIGHTS; ++i)
+		for (uint32 i = 0; i < cst_scenestats.lightCount; ++i)
 		{	
 
 			const float3 lightPos = cst_lights[i].position;		
@@ -302,13 +305,13 @@ __device__ Color TraceRay(const Ray &ray, int recursion, void* accelerationStruc
 			const float3 shadowDir = cst_lights[i].getShadowRay(hitPoint).direction;
 
 			float intensity = fabs(CUDA::dot(hitNormal, shadowDir));
-#ifdef SOFTSHADOWS
+#ifdef OPT_SOFT_SHADOWS
 			intensity = intensity * IntensityMult(lightPos,hitPoint,accelerationStructure);
 			if (intensity > 0.f){
 #endif
 
 
-#ifndef SOFTSHADOWS
+#ifndef OPT_SOFT_SHADOWS
 			//if (true /*intensity > 0.f*/) { // only if there is enought light
 			Ray lightRay = Ray(cst_lights[i].position, CUDA::float3_sub(hitPoint, lightPos));
 
@@ -349,13 +352,14 @@ __device__ Color TraceRay(const Ray &ray, int recursion, void* accelerationStruc
 }	
 
 
+#ifdef OPT_DEPTH_OF_FIELD
 __device__ Color DepthOfFieldRayTrace(const Ray &ray, int recursion, void* accelerationStructure) 
 {
 	HitInfo hit;
 	Color c;
 	c.set(0,0,0);
 	c.accumulate(TraceRay(ray,recursion,accelerationStructure),0.20);
-	hit = cst_FocalPlane.intersect(ray);
+	hit = cst_focalplane.intersect(ray);
 	
 	if (hit.hit) {
 		hit.point = ray.getPoint(hit.t);
@@ -384,6 +388,7 @@ __device__ Color DepthOfFieldRayTrace(const Ray &ray, int recursion, void* accel
 	}
 	return c;
 }
+#endif
 
 /**
 * CUDA kernel
@@ -397,7 +402,7 @@ __device__ Color DepthOfFieldRayTrace(const Ray &ray, int recursion, void* accel
 
 __global__ void RTKernel(uchar3* data, void* accelerationStructure, uint32 width, uint32 height)
 {
-#ifdef BILINEAR_SAMPLING
+#ifdef OPT_BILINEAR_SAMPLING
 	__shared__ Color presampled[64];
 
 	uint32 X = SUB_CONST*((blockIdx.x * blockDim.x) + threadIdx.x - blockIdx.x);
@@ -466,11 +471,11 @@ __global__ void RTKernel(uchar3* data, void* accelerationStructure, uint32 width
 	Ray r = cst_camera.getRay(x, y);
 	Color c;
 
-#ifndef DEPTHOFFIELD
+#ifndef OPT_DEPTH_OF_FIELD
 	c = TraceRay(r,15,accelerationStructure);
 #endif
 
-#ifdef DEPTHOFFIELD
+#ifdef OPT_DEPTH_OF_FIELD
 	c = DepthOfFieldRayTrace(r,15,accelerationStructure);
 	
 #endif
@@ -495,9 +500,9 @@ __global__ void RTKernel(uchar3* data, void* accelerationStructure, uint32 width
 * @param uint32 height
 * @param float time
 */
-extern "C" void launchRTKernel(uchar3* data, uint32 imageWidth, uint32 imageHeight, Sphere* spheres, Plane* planes, Cylinder* cylinders,Triangle* triangles, PointLight* lights, PhongMaterial* materials, Camera* camera, Plane* focalPlane, void* accelerationStructure)
+extern "C" void launchRTKernel(uchar3* data, uint32 imageWidth, uint32 imageHeight, Scene* scene, void* accelerationStructure = nullptr)
 {   
-#ifdef BILINEAR_SAMPLING
+#ifdef OPT_BILINEAR_SAMPLING
 	dim3 threadsPerBlock(THREADS_PER_BLOCK, THREADS_PER_BLOCK, 1); // 64 threads ~ 8*8 -> based on this shared memory for sampling is allocated !!!
 
 	int blocksx = WINDOW_WIDTH / SUB_CONST / (threadsPerBlock.x-1);
@@ -511,15 +516,15 @@ extern "C" void launchRTKernel(uchar3* data, uint32 imageWidth, uint32 imageHeig
 	dim3 numBlocks(WINDOW_WIDTH / threadsPerBlock.x, WINDOW_HEIGHT / threadsPerBlock.y);
 #endif
 
-	cudaMemcpyToSymbol(cst_camera, camera, sizeof(Camera));
-	cudaMemcpyToSymbol(cst_spheres, spheres, NUM_SPHERES * sizeof(Sphere));
-	cudaMemcpyToSymbol(cst_planes, planes, NUM_PLANES * sizeof(Plane));
-	cudaMemcpyToSymbol(cst_lights, lights, NUM_LIGHTS * sizeof(PointLight));
-	cudaMemcpyToSymbol(cst_materials, materials, NUM_MATERIALS * sizeof(PhongMaterial));	
-	cudaMemcpyToSymbol(cst_cylinders, cylinders, NUM_CYLINDERS * sizeof(Cylinder));
-	cudaMemcpyToSymbol(cst_triangles, triangles, NUM_TRIANGLES * sizeof(Triangle));
-
-	cudaMemcpyToSymbol(cst_FocalPlane, focalPlane, sizeof(Plane));	
+	cudaMemcpyToSymbol(cst_camera, scene->getCamera(), sizeof(Camera));
+	cudaMemcpyToSymbol(cst_spheres, scene->getSpheres(), scene->getSphereCount() * sizeof(Sphere));
+	cudaMemcpyToSymbol(cst_planes, scene->getPlanes(), scene->getPlaneCount() * sizeof(Plane));
+	cudaMemcpyToSymbol(cst_lights, scene->getLights(), scene->getLightCount() * sizeof(PointLight));
+	cudaMemcpyToSymbol(cst_materials, scene->getMaterials(), scene->getMaterialCount() * sizeof(PhongMaterial));	
+	cudaMemcpyToSymbol(cst_cylinders, scene->getCylinders(), scene->getCylinderCount() * sizeof(Cylinder));
+	cudaMemcpyToSymbol(cst_triangles, scene->getTriangles(), scene->getTriangleCount() * sizeof(Triangle));
+	cudaMemcpyToSymbol(cst_scenestats, &scene->getSceneStats(), sizeof(SceneStats));
+	cudaMemcpyToSymbol(cst_focalplane, scene->getFocalPlane(), sizeof(Plane));	
 
 	RTKernel <<<numBlocks, threadsPerBlock>>>(data, accelerationStructure, imageWidth, imageHeight);
 

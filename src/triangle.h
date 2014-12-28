@@ -18,21 +18,17 @@ struct Triangle
 	float3 u, v;
 	uint32	id;
 
-	void set(float3 const& na, float3 const& nb, float3 const& nc, uint32 const& matId)
-	{
-		materialId = matId;
-		a = na;
-		b = nb;
-		c = nc;
+	__host__ __device__
+	Triangle()
+	{}
 
-		u = b-a;
-		v = c- a;
-
+	__host__
+	Triangle(float3 const& na, float3 const& nb, float3 const& nc, uint32 const& matId) : materialId(matId), a(na), b(nb), c(nb), u(nb - na), v(nc - na)
+	{		
 		normal.x = u.y*v.z - u.z*v.y;
 		normal.y = u.z*v.x - u.x*v.z;
 		normal.z = u.x*v.y - u.y*v.x;
 		normal = normalize(normal);
-
 	}	
 	//dle http://www.cs.virginia.edu/~gfx/Courses/2003/ImageSynthesis/papers/Acceleration/Fast%20MinimumStorage%20RayTriangle%20Intersection.pdf a
 	// http://www.lighthouse3d.com/tutorials/maths/ray-triangle-intersection/

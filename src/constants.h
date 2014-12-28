@@ -45,28 +45,28 @@ enum CudaMaterials {
 	NUM_MATERIALS
 };
 
-#define NUM_PLANES 6
-#define NUM_SPHERES 4
-#define NUM_CYLINDERS 1
-#define NUM_LIGHTS 1
-#define NUM_TRIANGLES 3
-
 #define SUB_CONST 4
 
-#define FOCALLENGTH  12.0
-#define LENSRADIUS 0.3
-#define LIGHTRADIUS 1
 
-//pøepínaèe pro ovládání funkcí raytracingu
 
-//#define BILINEAR_SAMPLING 1 
 
-  //#define BUILD_WITH_BVH
- //#define BUILD_WITH_KDTREE
 
-//#define CAMERASHIFT  //pohyb kamery
-//#define DEPTHOFFIELD //hloubka ostrosti
-//#define SOFTSHADOWS //hladke stiny
+/** @brief Acceleration structures */
+#define ACC_NONE
+// #define ACC_BVH
+// #define ACC_KD_TREE
+
+/** @brief Options */
+// #define OPT_BILINEAR_SAMPLING	 
+// #define OPT_CAMERA_SHIFT		
+// #define OPT_DEPTH_OF_FIELD		
+// #define OPT_SOFT_SHADOWS		
+
+#ifdef OPT_DEPTH_OF_FIELD
+	#define FOCALLENGTH		12.0
+	#define LENSRADIUS		0.3
+	#define LIGHTRADIUS		1
+#endif
 
 const uint32 SPLIT_LIMIT = 5;
 
@@ -74,5 +74,13 @@ const uint32 SPLIT_LIMIT = 5;
 const float DEFAULT_PHONG_SHININESS = 15.f;
 /** @brief Default phong reflectance for reflective materials. */
 const float DEFAULT_PHONG_REFLECTANCE = 0.5f;
+
+/** @brief max size of constant memory reservered for each primitive */
+#define MAX_SPHERES 32
+#define MAX_TRIANGLES 32
+#define MAX_CYLINDERS 32
+#define MAX_LIGHTS 32
+#define MAX_PLANES 32
+
 
 #endif

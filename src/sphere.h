@@ -13,12 +13,12 @@ struct Sphere
 	uint32	materialId;
 	uint32	id;
 		
-	void set(float3 const& ce, float const& r, uint32 const& matId)
-	{
-		materialId = matId;
-		center = ce;
-		radius = r;
-	}	
+	__host__ __device__
+	Sphere() { }
+
+	__host__ __device__
+	Sphere(float3 const& ce, float const& r, uint32 const& matId) : center(ce), radius(r), materialId(matId)
+	{}	
 
 	__device__ HitInfo intersect(Ray const& ray) {
 		float aa = CUDA::dot(ray.direction, ray.direction);
@@ -50,7 +50,7 @@ struct Sphere
 
 	__device__ float3 getNormal(float3 const& position) const {
 		float3 n = CUDA::float3_sub(position, center);
-		return CUDA::normalize(n);		
+		return normalize(n);		
 	}
 	
 };

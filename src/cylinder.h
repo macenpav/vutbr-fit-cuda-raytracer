@@ -2,9 +2,7 @@
 #define CYLINDER_H
 
 #include "phong.h"
-
 #include "mathematics.h"
-
 #include "ray.h"
 
 struct Cylinder
@@ -15,16 +13,21 @@ struct Cylinder
 	uint32	materialId;
 	uint32	id;
 		
-	void set(float3 const& ce, float const& r, float3 const& dir, uint32 const& matId)
+	__host__ __device__
+	Cylinder() { }
+
+	__host__ __device__
+	Cylinder(float3 const& ce, float const& r, float3 const& dir, uint32 const& matId)
 	{
 		materialId = matId;
 		center = ce;
 		radius = r;
 		direction = dir;
 		direction = normalize(direction);
-	}	
+	}
 
-	__device__ HitInfo intersect(Ray const& ray) {
+	__device__ 
+	HitInfo intersect(Ray const& ray) {
 		const float3 c = CUDA::float3_sub(ray.origin, center);
 		const float3 b = ray.direction;
 		
@@ -77,7 +80,7 @@ struct Cylinder
 		n.z = direction.z * y;
 		n = CUDA::float3_sub(V, n);
 
-		return CUDA::normalize(n);		
+		return normalize(n);		
 	}
 	
 };

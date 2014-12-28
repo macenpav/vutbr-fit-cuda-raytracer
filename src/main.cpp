@@ -49,14 +49,16 @@ cudaGraphicsResource_t cudaResourceBuffer;
 cudaGraphicsResource_t cudaResourceTexture;
 
 
-extern "C" void launchRTKernel(uchar3*, uint32, uint32, Sphere*, Plane*,Cylinder*,Triangle*, PointLight*, PhongMaterial*, Camera*, Plane*, void*);
+extern "C" void launchRTKernel(uchar3*, uint32, uint32, Scene*, void*);
 
 float deltaTime = 0.0f;
 float fps = 0.0f;
 float delta;
 bool switchb = true;
 
-float focalLength = FOCALLENGTH;
+#ifdef OPT_DEPTH_OF_FIELD
+	float focalLength = FOCALLENGTH;
+#endif
 
 /**
 * 1. Maps the the PBO (Pixel Buffer Object) to a data pointer
@@ -87,19 +89,16 @@ void runCuda()
 	cam->lookAt(make_float3(shiftx, shifty, shiftz),  // eye
 		make_float3(0.f, 0.f, 15.f),   // target
 		make_float3(0.f, 1.f, 0.f),   // sky
-		30, (float)WINDOW_WIDTH/WINDOW_HEIGHT);
-	
-	Plane focalPlane;
+		30, (float)WINDOW_WIDTH/WINDOW_HEIGHT);	
 
-#ifdef DEPTHOFFIELD
-	float3 possition;
-	float3 dirrection = make_float3(cam->direction.x,cam->direction.y,cam->direction.z);
-	possition = CUDA::float3_add(cam->position,CUDA::float3_mult(focalLength,cam->direction));
+#ifdef OPT_DEPTH_OF_FIELD	
+	float3 dir = make_float3(cam->direction.x,cam->direction.y,cam->direction.z);
+	float3 pos = CUDA::float3_add(cam->position, CUDA::float3_mult(focalLength,cam->direction));
 	
-	focalPlane.set(dirrection,possition,NUM_MATERIALS);//bez materialu 
+	scene.setFocalPlane(Plane(dir, pos, NUM_MATERIALS)); // no material
 #endif	
 
-	launchRTKernel(data, WINDOW_WIDTH, WINDOW_HEIGHT, scene.getSpheres(), scene.getPlanes(), scene.getCylinders(),scene.getTriangles(), scene.getLights(), scene.getMaterials(), scene.getCamera(), &focalPlane, acceleration_structure);
+	launchRTKernel(data, WINDOW_WIDTH, WINDOW_HEIGHT, &scene, acceleration_structure);
 
 	cudaGraphicsUnmapResources(1, &cudaResourceBuffer, 0);
 	// cudaGraphicsUnmapResources(1, &cudaResourceTexture, 0);	
@@ -180,7 +179,8 @@ void initCuda(int argc, char** argv)
 	runCuda();
 }
 
-void initMaterials() {
+void initMaterials()
+{
 	scene.add(MAT_RED);
 	scene.add(MAT_GREEN);
 	scene.add(MAT_BLUE);
@@ -192,13 +192,11 @@ void initMaterials() {
 	scene.add(MAT_MIRROR);
 }
 
-void initSpheres() {	
-	Sphere s1;
-	s1.set(make_float3(-4,  4 , -2), 4.f, MATERIAL_MIRROR);
-	scene.add(s1);
+void initSpheres()
+{			
+	scene.add(Sphere(make_float3(-4, 4, -2), 4.f, MATERIAL_MIRROR));
 	
-#if defined BUILD_WITH_BVH
-
+#if defined ACC_BVH
 	std::vector<Sphere> spheres = scene.getSphereVector();
 	std::vector<Obj> objects;
 	for (std::vector<Sphere>::iterator it = spheres.begin(); it != spheres.end(); ++it) {
@@ -218,7 +216,7 @@ void initSpheres() {
 	
 	acceleration_structure = copyBVHToDevice(&tree);
 
-#elif defined BUILD_WITH_KDTREE
+#elif defined ACC_KD_TREE
 	std::vector<Sphere> spheres = scene.getSphereVector();
 
 	CPU::KDNode* kdTree = buildKDTree(spheres);
@@ -227,126 +225,67 @@ void initSpheres() {
 #endif
 }
 
-void initPlanes() {
-	Plane p1; p1.set(make_float3(0, 0, 1), make_float3(0, 0, 15), MATERIAL_WHITE);
-	scene.add(p1); // vzadu
-	Plane p2; p2.set(make_float3(0, 1, 0), make_float3(0, 0, 0), MATERIAL_WHITE);//red
-	scene.add(p2); // podlaha
-	Plane p3; p3.set(make_float3(1, 0, 0), make_float3(-10, 0, 0), MATERIAL_RED);
-	scene.add(p3); // leva strana
-	Plane p4; p4.set(make_float3(-1, 0, 0), make_float3(10, 0, 0), MATERIAL_GREEN);
-	scene.add(p4); // prava strana
-	Plane p5; p5.set(make_float3(0, -1, 0), make_float3(0, 15, 0), MATERIAL_CHECKER);//red
-	scene.add(p5); // podlaha
-	Plane p6; p6.set(make_float3(0, 0, 1), make_float3(0, 0, -15), MATERIAL_WHITE);
-	scene.add(p6); // podlaha
-
+void initPlanes() 
+{	
+	scene.add(Plane(make_float3(0, 0, 1), make_float3(0, 0, 15), MATERIAL_WHITE)); // vzadu	
+	scene.add(Plane(make_float3(0, 1, 0), make_float3(0, 0, 0), MATERIAL_WHITE)); // podlaha	
+	scene.add(Plane(make_float3(1, 0, 0), make_float3(-10, 0, 0), MATERIAL_RED)); // leva strana	
+	scene.add(Plane(make_float3(-1, 0, 0), make_float3(10, 0, 0), MATERIAL_GREEN)); // prava strana	
+	scene.add(Plane(make_float3(0, -1, 0), make_float3(0, 15, 0), MATERIAL_CHECKER)); // podlaha
+	scene.add(Plane(make_float3(0, 0, 1), make_float3(0, 0, -15), MATERIAL_WHITE)); // podlaha
 }
 
 
 void initCylinders() 
 {
-	Cylinder c1;
-	c1.set(make_float3(6, 4, -2), 1.0, make_float3(0, -1, 0), MATERIAL_GREEN);
-	scene.add(c1);
-
+	scene.add(Cylinder(make_float3(6, 4, -2), 1.0, make_float3(0, -1, 0), MATERIAL_GREEN));
 }
 
 // BOX
 // X <-10, 10> L-R
 // Y <0,15> T-B
 // Z <-inf,15> -B
-void initTriangles(){
-	Triangle t1;	
-	t1.set(
+void initTriangles()
+{
+	scene.add(Triangle(
 		make_float3(-10, 0, 0), // LT
 		make_float3(10, 0, 0), // RT
 		make_float3(0, 15, 10), // B
-		MATERIAL_RED_REFL);
-	scene.add(t1);
+		MATERIAL_RED_REFL));	
 
-	Triangle t2;
-	t2.set(
+	scene.add(Triangle(
 		make_float3(-10, 0, 0), // LT
 		make_float3(-10, 15, 15), // t1
 		make_float3(0, 15, 10), // B
-		MATERIAL_GREEN_REFL);
-	scene.add(t2);
+		MATERIAL_GREEN_REFL));
 
-	Triangle t3;
-	t3.set(
+	scene.add(Triangle(
 		make_float3(10, 15, 15), // t1
 		make_float3(10, 0, 0), // RT
 		make_float3(0, 15, 10), // B
-		MATERIAL_BLUE_REFL);
-	scene.add(t3);
-
+		MATERIAL_BLUE_REFL));	
 }
 
-void initLights() {
-	Color white; white.set(1.f, 1.f, 1.f);
-	PointLight l1; l1.set(make_float3(-2.f, 10.f, -15.f), white);
+void initLights() 
+{	
+	PointLight l1(make_float3(-2.f, 10.f, -15.f), COLOR_WHITE);
 	scene.add(l1);
 }
 
-void initScene() {
-
+void initScene() 
+{
 	initMaterials();
 	initSpheres();
 	initPlanes();
 	initCylinders();
 	initTriangles();
 	initLights();
-	//scene.add(PointLight(make_float3(0, 10, 0), Color(1, 1, 1)));
-
-	/*Sphere s(make_float3(8.f, -4.f, 0.f), 2.f, matRed);
-	scene.add(s);
-	Sphere s1(make_float3(4.f, 0.f, 4.f), 4.f, matGreen);
-	scene.add(s1);	
-	Plane p(make_float3(7.f, 10.f, -10.f), make_float3(5.f, 0.f, 0.f), matBlue);
-	scene.add(p);
-	PointLight l(make_float3(1.f, 5.f, 4.f), Color(1.f, 1.f, 1.f));
-	scene.add(l);
-	PointLight l2(make_float3(9.f, 10.f, 1.f), Color(1.f, 1.f, 1.f));
-	scene.add(l2);*/
-	
 	
 	scene.getCamera()->init();	
-
-	// cudaMalloc((void***) &devSpheres, scene.getSphereCount() * sizeof(Sphere));
-	// cudaMalloc((void***) &devPlanes, scene.getPlaneCount() * sizeof(Plane));
-	// cudaMalloc((void***) &devLights, scene.getLightCount() * sizeof(PointLight));
-	// cudaMalloc((void***) &devCamera, sizeof(Camera));
-	// cudaMalloc((void***) &dev_sceneStats, sizeof(SceneStats));
-
-	// cudaMemcpy(devPlanes, scene.getPlanes(), scene.getPlaneCount() * sizeof(Plane), cudaMemcpyHostToDevice);
-	// cudaMemcpy(devSpheres, scene.getSpheres(), scene.getSphereCount() * sizeof(Sphere), cudaMemcpyHostToDevice);
-	// cudaMemcpy(devLights, scene.getLights(), scene.getLightCount() * sizeof(PointLight), cudaMemcpyHostToDevice);
-	// cudaMemcpy(devCamera, scene.getCamera(), sizeof(Camera), cudaMemcpyHostToDevice);
-	// cudaMemcpy(dev_sceneStats, scene.getSceneStats() , sizeof(SceneStats), cudaMemcpyHostToDevice);	
-}
-
-void processSpecialKeys(int key, int x, int y) 
-{
-	switch(key)
-	{
-		case GLUT_KEY_UP: focalLength += 0.5;break;
-		case GLUT_KEY_DOWN:focalLength -= 0.5; break;
-		case 27: 
-			exit(1); 
-			break;
-	};
-	if (focalLength < 3.0) { //omezeni kdy to jeste vypada jakz takz rozumes
-		focalLength = 3.0;	
-	}
-	if (focalLength > 15) {
-	
-		focalLength = 15;
-	}
 }
 
 /**
-* Initializes the OpenGL part of the app
+* @brief Initializes the OpenGL part of the app
 *
 * @param int number of args
 * @param char** arg values
@@ -358,7 +297,6 @@ void initGL(int argc, char** argv)
 	glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 	glutCreateWindow(APP_NAME);
 	glutDisplayFunc(display);
-	glutSpecialFunc(processSpecialKeys);
 	// check for necessary OpenGL extensions
 	glewInit();
 	if (!glewIsSupported("GL_VERSION_2_0")) {
@@ -399,6 +337,14 @@ void processKeys(unsigned char key, int x, int y)
 			if (shifty > 0.2f)
 				shifty -= 0.2f;
 			break;
+#ifdef OPT_DEPTH_OF_FIELD
+		case GLUT_KEY_UP: 
+			focalLength += 0.5; 
+			break;
+		case GLUT_KEY_DOWN:
+			focalLength -= 0.5; 
+			break;
+#endif
 		default:
 			break;
 	}

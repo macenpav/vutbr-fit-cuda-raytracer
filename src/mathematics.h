@@ -20,17 +20,6 @@ namespace CUDA {
 			v1.x * v2.y - v1.y * v2.x);	
 	}
 
-	__device__ inline float3& normalize(float3& vector)
-	{
-		float len = sqrt((vector.x * vector.x) + (vector.y * vector.y) + (vector.z * vector.z));
-
-		vector.x /= len;
-		vector.y /= len;
-		vector.z /= len;	
-
-		return vector;
-	}
-
 	__device__ inline float length(float3 const& vector) {
 		return sqrt((vector.x * vector.x) + (vector.y * vector.y) + (vector.z * vector.z));
 	}
@@ -57,6 +46,7 @@ inline float3 cross(float3 const& v1, float3 const& v2)
 		v1.x * v2.y - v1.y * v2.x);	
 }
 
+__host__ __device__
 inline float3& normalize(float3& vector)
 {
 	float len = sqrt((vector.x * vector.x) + (vector.y * vector.y) + (vector.z * vector.z));
