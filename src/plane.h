@@ -4,13 +4,15 @@
 #include "phong.h"
 
 struct Plane
-{
-	void set(float3 n, float3 point, uint32 matId)			
-	{		
-		materialId = matId;		
+{	
+	Plane(){}
+
+	Plane(float3 n, float3 p, uint32 matId)
+	{
+		materialId = matId;
 		normal = normalize(n);
-		d = -1.f * dot(normal, point);
-	}
+		d = -1.f * dot(normal, p);
+	}	
 
 	__device__ HitInfo intersect(Ray const& ray) {
 		float np = CUDA::dot(normal, ray.direction);
@@ -33,7 +35,5 @@ struct Plane
 	float d;
 	uint32 materialId;
 };
-
-
 
 #endif

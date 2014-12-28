@@ -9,16 +9,12 @@
 */
 struct PhongMaterial
 {
-	__device__ __host__
+	__host__ __device__
 	PhongMaterial(){ };
 
-	__device__ __host__
+	__host__ __device__
 	PhongMaterial(const Color &diff, const Color &spec, const Color &amb, float shin, float ref = 0.0)
-	{ diffuse = diff; specular = spec; ambient = amb; shininess = shin; reflectance = ref; }
-
-	__device__ __host__
-	void set(const Color &diff, const Color &spec, const Color &amb, float shin, float ref = 0.0)
-	{ diffuse = diff; specular = spec; ambient = amb; shininess = shin; reflectance = ref; }
+	{ diffuse = diff; specular = spec; ambient = amb; shininess = shin; reflectance = ref; }	
 	
 	/** @brief	Diffuse light. */
 	Color diffuse;
