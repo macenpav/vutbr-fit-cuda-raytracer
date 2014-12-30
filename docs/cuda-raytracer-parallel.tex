@@ -1,0 +1,166 @@
+% ----- formatovani dokumentu -----------------------------------------------
+\documentclass[12pt,a4paper,titlepage,final]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[T1, IL2]{fontenc}
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage[margin=2cm]{caption}
+\usepackage[top=3cm, left=2cm, right=2cm, text={17cm, 24cm}, ignorefoot]{geometry}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage[]{algorithm2e}
+\usepackage{amsmath}
+
+% ------ commands -----------------------
+
+
+% ---------------------------------------
+
+\usepackage{url}
+\usepackage{setspace}
+\singlespacing
+\usepackage[square, numbers]{natbib} 
+\pagestyle{plain}
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\setlength{\parindent}{1cm}	
+\usepackage{natbib}
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\arabic{section}.\arabic{subsection}}
+
+
+
+% ----- vyberte jazyk -------------------------------------------------------
+\usepackage[english,czech]{babel}
+%\usepackage[english]{babel}
+
+% ----- dopiste titulky -----------------------------------------------------
+\newcommand\Course{Grafické a multimediální procesory}
+\newcommand\WorkTitle{Raytracer na CUDA}
+\newcommand\AuthorA{Pavel Macenauer}
+\newcommand\AuthorB{Jan Bureš}
+\newcommand\AuthorAEmail{xmacen02@stud.fit.vutbr.cz}
+\newcommand\AuthorBEmail{xbures19@stud.fit.vutbr.cz}
+\newcommand\Faculty{Fakulta Informačních Technologií}
+\newcommand\School{Vysoké Učení Technické v~Brně}
+
+\usepackage[
+pdftitle={\WorkTitle},
+pdfauthor={\AuthorA\AuthorB},
+bookmarks=true,
+colorlinks=true,
+breaklinks=true,
+urlcolor=blue,
+citecolor=blue,
+linkcolor=blue,
+unicode=true,
+]
+{hyperref}
+
+
+
+% ----- titulni strana ------------------------------------------------------
+
+\begin{document}
+	\begin{titlepage}
+	\begin{center}
+		\includegraphics[height=5cm]{images/logo.eps}
+	\end{center}
+	\vfill
+	\begin{center}
+		\begin{Large}
+			\Course\\
+		\end{Large}
+		\bigskip
+		\begin{Huge}
+			\WorkTitle\\
+		\end{Huge}
+	\end{center}
+	\vfill
+	\begin{center}
+		\begin{large}
+			\today
+		\end{large}
+	\end{center}
+	\vfill
+	\begin{flushleft}
+		\begin{large}
+			\begin{tabular}{lll}
+				Autor: & \AuthorA, & \url{\AuthorAEmail} \\
+				& \AuthorB, & \url{\AuthorBEmail} \\
+		
+				& & \\
+				& \Faculty \\
+				& \School \\
+			\end{tabular}
+		\end{large}
+	\end{flushleft}
+\end{titlepage}		
+
+\tableofcontents
+
+% ----- obsah -------------------------------------------------------------
+\newpage
+
+\section{Cíl práce}
+
+\dots
+
+\section{Raytracing}
+
+\dots
+
+\section{Optimalizace pro GPU}
+
+\dots
+
+\subsection{Paralelizace}
+
+\dots
+
+\subsection{Uspořádání paměti}
+
+\dots
+
+\subsection{Další možné zlepšení}
+
+\dots
+
+\section{Krátce co Raytracer umí}
+
+\dots
+
+\section{Rozdělení práce}
+
+\paragraph{Pavel Macenauer} \dots
+
+\paragraph{Jan Bureš} \dots
+
+\section{Ovládání programu}
+
+\subsection{Překlad}
+
+\dots
+
+\subsection{Spuštění a ovládání}
+
+\dots
+
+\section{Závěr}
+
+\dots
+
+\bibliographystyle{plain}
+
+\nocite{cite1}
+\nocite{cite2}
+\nocite{cite3}
+\nocite{cite4}
+
+
+\hypertarget{bib}{}
+\bibliography{reference}
+\addcontentsline{toc}{section}{Literatura}
+
+\end{document}
+
