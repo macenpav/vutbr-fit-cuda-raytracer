@@ -1,0 +1,168 @@
+\documentclass[11pt,a4paper]{article}
+\input{config}
+
+\begin{document}
+\titlepageandcontents
+
+%---------------------------------------------------------------------------
+\section{Zadání}
+
+\begin{itemize}
+	\item Implementace Raytraceru pomocí technologie CUDA v následujícím rozsahu:
+	\begin{itemize}
+		\item Geometrická primitiva: roviny, koule
+		\item Phongův osvětlovací model
+		\item Bodové zdroje světla a stíny
+		\item Odlesky
+	\end{itemize}
+	\item Akcelerace výpočtu scény
+	\begin{itemize}
+		\item průzkum akcelerace raytracingu na GPU
+		\item subsampling
+		\item využití akcelerační struktury pro výpočet (BVH, KD-tree, octree, ...)
+	\end{itemize}
+	\item Vygenerování demonstrační scény a její vykreslení
+\end{itemize}
+
+%---------------------------------------------------------------------------
+\section{Použité technologie}
+
+Tady bych asi vepsal to jak jsme vyřešili tu paralelizaci a rozvržení paměti.
+
+Zde vypište, jaké technologie vaše řešení používá – co potřebuje k běhu, co
+jste použili při tvorbě, atd. Text strukturujte, použijte odrážky,
+číslování$\ldots$
+
+Rozsah: cca 7 odrážek
+
+%---------------------------------------------------------------------------
+\section{Použité zdroje}
+
+Zde vypište, které zdroje jste použili k tvorbě: hotový kód, hotová data
+(obrázky, modely, $\ldots$), studijní materiály. Pokud vyplyne, že v projektu
+je použit kód nebo data, která nejsou uvedena tady, jedná se o závažný problém
+a projekt bude pravděpodobně hodnocen 0 body.
+
+Rozsah: potřebný počet odrážek
+
+%---------------------------------------------------------------------------
+\section{Nejdůležitější dosažené výsledky}
+
+Popište 3 věci, které jsou na vašem projektu nejlepší. Nejlépe ukažte a
+komentujte obrázky, v nejhorším případě vypište textově.
+
+%---------------------------------------------------------------------------
+\section{Ovládání vytvořeného programu}
+
+Stručně popište, jak se program ovládá (nejlépe odrážky rozdělené do
+kategorií). Pokud se ovládání odchyluje od zkratek a způsobů obvykle
+používaných v okénkových nadstavbách operačních systémů, zdůvodněte, proč se
+tak děje.
+
+Rozsah: potřebný počet odrážek
+
+%---------------------------------------------------------------------------
+\section{Zvláštní použité znalosti}
+
+
+\subsection{NVidia CUDA}
+Hlavní co jsme museli nastudovat jsou vědomosti ohledně technologie CUDA tedy struktura pamětí, jak je používat pomocí jejího C++ API a v kombinaci s programováním na CPU.
+
+K debugování a programování jsme následně využívali vývojové prostředí Microsoft Visual Studio 2012 s NVidia NSight.
+
+Museli jsme nastudovat i témata neprobíraná, resp. jen z lehka naťuklá na přenáškách. Jedním z nich je akcelerační struktura zvaná BVH.
+
+\subsection{Krátce o Bounding Volume Hierarchy}
+Jedná se o akcelerační strukturu při výpočtech v počítačové grafické.
+
+\paragraph{Konstrukce}
+\begin{itemize}
+	\item Určí se konstanta pro počet objektů v nejnižší vrstvě stromu, tj. kolik listů bude mít každý předposlední uzel stromu.
+	\item Řadíme objekty podle svých souřadnic (zda-li X, Y nebo Z záleží na programátorovi) a dělíme prostor vždy na 2.
+	\item Skončíme ve chvíli, kdy v daném podprostoru je méně objektů, než-li námi daná konstanta, tyto objekty pak přidáme do seznamu daného uzlu
+\end{itemize}
+
+\paragraph{Výhody} V případě raytracingu nemusíme testovat zda-li paprsek protne všechny primitiva ve scéně, ale vždy testujeme zda-li trefíme některý z podprostorů: kořen stromu má 2 podprostory, každý z nich zase další 2. Ve chvíli kdy narazíme na podprostor, který již nemá žádné další, ale pouze jednotlivé listy, tak provedeme test na průnik pouze těch primitiv obsažených pod daným uzlem. Počet testů je tak roven \verb|HLOUBKA STROMU * 2 + POČET LISTŮ NA UZEL|, což bývá podstatně méně u velkých scén, než-li celkový počet primitiv.
+
+
+%---------------------------------------------------------------------------
+\section{Rozdělení práce v týmu}
+
+\begin{itemize}
+\item \textbf{Jan Bureš}: Phongův osvětlovací model, úprava bilineární interpolace, především raytracing-části raytraceru, hloubka ostrosti, neostré stíny
+\item \textbf{Pavel Macenauer}: Základní kostra programu, optimalizace využitých paměťových jednotek, základ pro bilineární interpolaci, především CUDA-části raytraceru 
+\end{itemize}
+
+%---------------------------------------------------------------------------
+\section{Co bylo nejpracnější}
+
+\begin{itemize}
+\item \textbf{Jan Bureš}: Na celé práci bylo asi nejložitější upravit algoritmus sledování paprsku tak, aby fungoval na architektuře CUDA. Dále pak správné rozdělení vláken do warpů a rozhodnout, který druh paměti použít pro které proměnné. Mno času bylo zapotřebí také věnovat rekurzi, kterou by sice CUDA měla podporovat od verze 3.0, ovšem stále program havaroval kvůli přetečení zásobníku.
+\item \textbf{Pavel Macenauer}: Nejprve celé zprovoznění CUDy a způsob, kterým předávat data mezi OpenGL, CUDou a následně je vykreslit stálo mnoho nervů a několik šálků kávy navíc. Především proto, že nové CUDA 3.0 API obsahuje nové metody pro komunikaci s OpenGL, nicméně dokumentace a materiály k tomu jsou především v podobě vygenerované dokumentace od společnosti NVidia. Dále ještě za zmínku stojí implementace BVH a celkové nastudování o principů.
+\end{itemize}
+%---------------------------------------------------------------------------
+\section{Zkušenosti získané řešením projektu}
+
+Naučili jsme se více o architektuře CUDA a získali představu o psaní paralelních algoritmů, vyzkoušeli si implementovat phongův osvětlovací model a raytracer v praxi. Dále jsme si prostudovali možné algoritmické optimalizace raytraceru a některé z nich implementovali.
+
+
+%---------------------------------------------------------------------------
+\section{Autoevaluace}
+
+\paragraph{Technický návrh (85\%):} 
+Tvorbu programu jsme si naplánovali na jednotlivé iterace, a tak až na pár úprav, které nás napadli během implementace nebylo nutné přepisovat již implementované části. Především se jednalo o části týkající se správy paměti, kdy s každým typem paměti na GPU se pracuje trochu jinak.
+
+\paragraph{Programování (75\%):}
+Kód je dobře strukturovaný, ale mohl by být více okomentován, např. pro vygenerování použitelné doxygen dokumentace. 
+Implementovaný raytracer je možné dále rozšiřovat a bez sebevětších komplikací přidávat další doplňky.
+
+\paragraph{Vzhled vytvořeného řešení (80\%):} 
+Scéna vypadá celkem pěkně, velmi zřídka lze pozorovat tečky, které narušují plynulost obrazu. Způsobené jsou pravděpodobně používáním datového typu float a nepřesností, které způsobuje. Některé optimalizace kvalitu obrazu mírně zhorší, ale vždy dle očekávání. Není problém do budoucna do implementovat i další primitiva, která by umožnila tvorbu komplexnějších scén.
+
+\paragraph{Využití zdrojů (90\%):}
+Hodně jsme využili již implementovaný raytracer Aurelius k lepšímu pochopení raytracingu a trochu méně pak dostupnou literaturu. Zdroje o CUDě a jejím zapojení jsme získali především z vyhledávače Google.
+
+\paragraph{Hospodaření s časem (70\%):}
+Začali jsme hned jak jsme obdrželi zadání, nicméně chvíli trvalo, než jsme vůbec měli něco co by něco vypočítalo na CUDě a předalo k zobrazení. Uprostřed semestru naše snaha mírně opadla kvůli jiným povinnostem ve škole. Na závěr jsme se snažili vše dokončit v čas, což se i povedlo.
+
+\paragraph{Spolupráce v týmu (95\%):}
+Od začátku jsme komunikovali ohledně podmínek spolupráce. Následné programování pak probíhalo bez problémů a o všem jsem se navzájem informovali přes instantní mluvítka jako Skype nebo Facebook. Veškeré změny jsme pak evidovali v repositáři na serveru GitHub.com, kde jsme i vybudovali společné vývojové prostředí.
+
+\paragraph{Celkový dojem (90\%):} 
+Celý projekt se nám jevil mírně obtížnější vzhledem k ostatním projektům na škole, především z důvodu dostupnosti materiálů, kterých je na internetu spousty, nicméně vyfiltrovat z nich použitelné informace je časově náročné. 
+Získané vědomosti a zkušenosti jsou určitě přínosem. 
+Vybrali jsme si téma projektu kvůli architektuře CUDA, kterou jsme předtím v praxi nikdy nepoužívali a tímto jsem si udělali nejen lepší představu o samotné technologii ale i o moderních grafických kartách a naučili se pracovat s další technologií, která má své místo v softwarové budoucnosti. Celý projekt byl zajímavý také tím že jsme si vyzkoušeli vytvořit grafickou aplikaci úplně od začátku.
+
+
+%---------------------------------------------------------------------------
+\section{Doporučení pro budoucí zadávání projektů}
+
+Následující body jsou spíše nápady pro vytvoření možnosti v daném časovém rozsahu zpracovat komplexnější projekt a přeskočit onu fundamentální část projektu "aby to něco dělalo":
+\begin{itemize}
+	\item Specifikovat požadavky k zadanému tématu (která primitiva implementovat, do jaké míry implementovat raytracer, případně vypsat, co změřit ...)
+	\item Sestavit kostru projektu, např. projekt v MS Visual Studiu/QMake/Makefile s potřebnými hlavičkovými soubory obsahující prototypy metod
+\end{itemize}
+
+%---------------------------------------------------------------------------
+\section{Různé}
+
+Ještě něco by v dokumentaci mělo být? Napište to sem! Podle potřeby i založte
+novou kapitolu.
+
+\bibliographystyle{plain}
+
+\nocite{pgr-raytracing}
+\nocite{aurelius}
+\nocite{pgp-optimalizace}
+\nocite{cuda-doc}
+\nocite{phong-wiki}
+\nocite{so-stack}
+\nocite{bvh}
+\nocite{cmemory}
+\nocite{trier}
+
+\bibliography{reference}
+\addcontentsline{toc}{chapter}{Literatura}
+
+\end{document}
+% vim:set ft=tex expandtab enc=utf8:
