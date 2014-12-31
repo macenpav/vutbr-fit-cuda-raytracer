@@ -735,7 +735,9 @@ void initMaterials()
 
 void initSpheres()
 {
-	scene.add(Sphere(make_float3(-4, 4, -2), 2.f, MATERIAL_MIRROR));
+	for (int i = 0; i < 50; ++i)
+		scene.add(Sphere(make_float3(i/5, i%5, i/5+i%5), 1.f, MATERIAL_RED));
+	
 
 #if defined ACC_BVH
 	std::vector<Sphere> spheres = scene.getSphereVector();
@@ -772,7 +774,7 @@ void initPlanes()
 	scene.add(Plane(make_float3(0, 1, 0), make_float3(0, 0, 0), MATERIAL_WHITE)); // podlaha	
 	scene.add(Plane(make_float3(1, 0, 0), make_float3(-10, 0, 0), MATERIAL_RED)); // leva strana	
 	scene.add(Plane(make_float3(-1, 0, 0), make_float3(10, 0, 0), MATERIAL_GREEN)); // prava strana	
-	scene.add(Plane(make_float3(0, -1, 0), make_float3(0, 15, 0), MATERIAL_CHECKER)); // podlaha
+	scene.add(Plane(make_float3(0, -1, 0), make_float3(0, 15, 0), MATERIAL_WHITE)); // podlaha
 	scene.add(Plane(make_float3(0, 0, 1), make_float3(0, 0, -15), MATERIAL_WHITE)); // podlaha
 }
 
@@ -826,14 +828,16 @@ void initLights()
 
 void initScene()
 {
+#ifdef TEST_AURELIUS
 	initMaterials();
 	initSpheres();
 	initPlanes();
-	initCylinders();
-	initTriangles();
+	//initCylinders();
+	//initTriangles();
 	initLights();
 
 	scene.getCamera()->init();
+#endif TEST_AURELIUS
 }
 
 /**

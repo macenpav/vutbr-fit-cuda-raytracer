@@ -61,7 +61,11 @@ enum CudaMaterials {
 // #define OPT_BILINEAR_SAMPLING	 
 // #define OPT_CAMERA_SHIFT		
 // #define OPT_DEPTH_OF_FIELD		
-// #define OPT_SOFT_SHADOWS		
+// #define OPT_SOFT_SHADOWS	
+
+/** @brief test scenes */
+// #define TEST_1
+#define TEST_AURELIUS
 
 #ifdef OPT_DEPTH_OF_FIELD
 	#define FOCALLENGTH		12.0
@@ -77,7 +81,7 @@ const float DEFAULT_PHONG_SHININESS = 15.f;
 const float DEFAULT_PHONG_REFLECTANCE = 0.5f;
 
 /** @brief max size of constant memory reservered for each primitive */
-#define MAX_SPHERES 1
+#define MAX_SPHERES 500
 #define MAX_TRIANGLES 512
 #define MAX_CYLINDERS 1
 #define MAX_LIGHTS 1
