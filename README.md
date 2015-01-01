@@ -1,2 +1,0 @@
-vutbr-fit-cuda-raytracer
-========================
