@@ -48,7 +48,7 @@ struct Triangle
 
 		f = 1 / x;
 
-		s = CUDA::float3_sub(ray.origin, a);
+		s = float3_sub(ray.origin, a);
 		y = f * CUDA::dot(s, h);
 		if (y < 0.0 || y > 1.0){
 			return hit;

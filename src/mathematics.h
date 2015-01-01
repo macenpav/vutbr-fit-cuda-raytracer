@@ -96,32 +96,32 @@ inline float3& operator*= (float3& l, float const& r)
 	l.x *= r; l.y *= r; l.z *= r; return l;
 }
 
-namespace CUDA {
-	__device__ inline float3 float3_sub (float3 const& l, float3 const& r)
+
+	__host__ __device__ inline float3 float3_sub (float3 const& l, float3 const& r)
 	{ 
 		return make_float3(l.x - r.x, l.y - r.y, l.z - r.z);	
 	}
 
-	__device__ inline float3 float3_add (float3 const& l, float3 const& r)
+	__host__ __device__ inline float3 float3_add(float3 const& l, float3 const& r)
 	{ 
 		return make_float3(l.x + r.x, l.y + r.y, l.z + r.z);	
 	}
 
-	__device__ inline float3 float3_add (float3 const& n1, float3 const& n2, float3 const& n3)
+	__host__ __device__ inline float3 float3_add(float3 const& n1, float3 const& n2, float3 const& n3)
 	{ 
 		return make_float3(n1.x + n2.x + n3.x, n1.y + n2.y + n3.y, n1.z + n2.z + n3.z);	
 	}
 
-	__device__ inline float3 float3_mult (float const& l, float3 const& r)
+	__host__ __device__ inline float3 float3_mult(float const& l, float3 const& r)
 	{ 
 		return make_float3(l * r.x, l * r.y, l * r.z);	
 	}
 
-	__device__ inline float3& float3_multassign(float3& l, float const& r)
+	__host__ __device__ inline float3& float3_multassign(float3& l, float const& r)
 	{ 
 		l.x *= r; l.y *= r; l.z *= r; return l;
 	}
-	__device__ inline float norm(float a) {
+	__host__ __device__ inline float norm(float a) {
 		if (a > 1.f)
 		{
 			return 1.0;
@@ -131,6 +131,6 @@ namespace CUDA {
 		}
 	}
 
-}
+
 
 #endif

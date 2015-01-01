@@ -55,23 +55,23 @@ enum CudaMaterials {
 /** @brief Acceleration structures */
 #define ACC_NONE
 // #define ACC_BVH
-// #define ACC_KD_TREE
+//#define ACC_KD_TREE
 
 /** @brief Options */
 // #define OPT_BILINEAR_SAMPLING	 
 // #define OPT_CAMERA_SHIFT		
-// #define OPT_DEPTH_OF_FIELD		
-// #define OPT_SOFT_SHADOWS	
+//#define OPT_DEPTH_OF_FIELD		
+//#define OPT_SOFT_SHADOWS	
 
 /** @brief test scenes */
 // #define TEST_1
 #define TEST_AURELIUS
 
-#ifdef OPT_DEPTH_OF_FIELD
+
 	#define FOCALLENGTH		12.0
 	#define LENSRADIUS		0.3
 	#define LIGHTRADIUS		1
-#endif
+
 
 const uint32 SPLIT_LIMIT = 5;
 

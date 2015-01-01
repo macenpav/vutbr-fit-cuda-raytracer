@@ -302,7 +302,7 @@ __device__ HitInfo intersectRayWithScene(Ray const& ray, void* accelerationStruc
 	return hitInfo;	
 }
 
-#ifdef OPT_DEPTH_OF_FIELD
+#ifdef OPT_SOFT_SHADOWS
 __device__ float IntensityMult(float3 lightPos, float3 hitPoint, void* accelerationStructure)
 {
 	const int shadowrayCount = 19;
@@ -332,10 +332,10 @@ __device__ float IntensityMult(float3 lightPos, float3 hitPoint, void* accelerat
 	origin[18] =  make_float3(lightPos.x , lightPos.y, lightPos.z - LIGHTRADIUS*2.f); 
 
 	for (int i =0; i<shadowrayCount; i++){
-		Ray r = Ray(origin[i], CUDA::float3_sub(hitPoint,origin[i]));
+		Ray r = Ray(origin[i], float3_sub(hitPoint,origin[i]));
 			
-		HitInfo shadowHit = intersectRayWithScene(r, triangles, accelerationStructure);
-		if ((shadowHit.hit) && (fabs(shadowHit.t - CUDA::length(CUDA::float3_sub(hitPoint, origin[i]))) < 0.001f)) 
+		HitInfo shadowHit = intersectRayWithScene(r, accelerationStructure);
+		if ((shadowHit.hit) && (fabs(shadowHit.t - CUDA::length(float3_sub(hitPoint, origin[i]))) < 0.001f)) 
 		{
 			value += 1.f/shadowrayCount;
 		}
@@ -371,7 +371,7 @@ __device__ Color TraceRay(const Ray &ray, int recursion, void* accelerationStruc
 		{	
 
 			const float3 lightPos = cst_lights[i].position;		
-			//const float3 shadowDir = CUDA::normalize(CUDA::float3_sub(lightPos, hitPoint));
+			//const float3 shadowDir = CUDA::normalize(float3_sub(lightPos, hitPoint));
 			const float3 shadowDir = cst_lights[i].getShadowRay(hitPoint).direction;
 
 			float intensity = fabs(CUDA::dot(hitNormal, shadowDir));
@@ -383,18 +383,18 @@ __device__ Color TraceRay(const Ray &ray, int recursion, void* accelerationStruc
 
 #ifndef OPT_SOFT_SHADOWS
 			//if (true /*intensity > 0.f*/) { // only if there is enought light
-			Ray lightRay = Ray(cst_lights[i].position, CUDA::float3_sub(hitPoint, lightPos));
+			Ray lightRay = Ray(cst_lights[i].position, float3_sub(hitPoint, lightPos));
 
 			HitInfo shadowHit = intersectRayWithScene(lightRay, accelerationStructure);
 
-			if ((shadowHit.hit) && (fabs(shadowHit.t - CUDA::length(CUDA::float3_sub(hitPoint, lightPos))) < 0.01f)) 
-				//if ((shadowHit.hit) && (shadowHit.t < CUDA::length(CUDA::float3_sub(hitPoint, lightPos)) + 0.0001f)) 
+			if ((shadowHit.hit) && (fabs(shadowHit.t - CUDA::length(float3_sub(hitPoint, lightPos))) < 0.01f)) 
+				//if ((shadowHit.hit) && (shadowHit.t < CUDA::length(float3_sub(hitPoint, lightPos)) + 0.0001f)) 
 			{
 #endif
 				color.accumulate(cst_materials[matID].diffuse * cst_lights[i].color, intensity);
 
 				if (cst_materials[matID].shininess > 0.f) {
-					float3 shineDir = CUDA::float3_sub(shadowDir, CUDA::float3_mult(2.0f * CUDA::dot(shadowDir, hitNormal), hitNormal));
+					float3 shineDir = float3_sub(shadowDir, float3_mult(2.0f * CUDA::dot(shadowDir, hitNormal), hitNormal));
 					intensity = CUDA::dot(shineDir, ray.direction);				
 					intensity = pow(intensity, cst_materials[matID].shininess);					
 					intensity = min(intensity, 10000.0f);
@@ -440,10 +440,10 @@ __device__ Color DepthOfFieldRayTrace(const Ray &ray, int recursion, void* accel
 		origin4 =  make_float3(ray.origin.x,ray.origin.y-LENSRADIUS, ray.origin.z);
 
 		Ray r1,r2,r3,r4;
-		r1 = Ray(origin1, CUDA::float3_sub(hit.point,origin1));  //paprsky se potkaji v miste hloubky ostrosti
-		r2 = Ray(origin2, CUDA::float3_sub(hit.point,origin2));
-		r3 = Ray(origin3, CUDA::float3_sub(hit.point,origin3));
-		r4 = Ray(origin4, CUDA::float3_sub(hit.point,origin4));
+		r1 = Ray(origin1, float3_sub(hit.point,origin1));  //paprsky se potkaji v miste hloubky ostrosti
+		r2 = Ray(origin2, float3_sub(hit.point,origin2));
+		r3 = Ray(origin3, float3_sub(hit.point,origin3));
+		r4 = Ray(origin4, float3_sub(hit.point,origin4));
 
 		Color c1,c2,c3,c4;
 		c1 = TraceRay(r1, recursion, accelerationStructure);
@@ -625,7 +625,7 @@ void runCuda()
 
 #ifdef OPT_DEPTH_OF_FIELD	
 	float3 dir = make_float3(cam->direction.x, cam->direction.y, cam->direction.z);
-	float3 pos = CUDA::float3_add(cam->position, CUDA::float3_mult(focalLength, cam->direction));
+	float3 pos = float3_add(cam->position, float3_mult(focalLength, cam->direction));
 
 	scene.setFocalPlane(Plane(dir, pos, NUM_MATERIALS)); // no material
 #endif	
@@ -735,8 +735,8 @@ void initMaterials()
 
 void initSpheres()
 {
-	for (int i = 0; i < 50; ++i)
-		scene.add(Sphere(make_float3(i/5, i%5, i/5+i%5), 1.f, MATERIAL_RED));
+	
+		scene.add(Sphere(make_float3(-6, 4, -3), 2.f, MATERIAL_MIRROR));
 	
 
 #if defined ACC_BVH
@@ -773,8 +773,8 @@ void initPlanes()
 	scene.add(Plane(make_float3(0, 0, 1), make_float3(0, 0, 15), MATERIAL_WHITE)); // vzadu	
 	scene.add(Plane(make_float3(0, 1, 0), make_float3(0, 0, 0), MATERIAL_WHITE)); // podlaha	
 	scene.add(Plane(make_float3(1, 0, 0), make_float3(-10, 0, 0), MATERIAL_RED)); // leva strana	
-	scene.add(Plane(make_float3(-1, 0, 0), make_float3(10, 0, 0), MATERIAL_GREEN)); // prava strana	
-	scene.add(Plane(make_float3(0, -1, 0), make_float3(0, 15, 0), MATERIAL_WHITE)); // podlaha
+	scene.add(Plane(make_float3(-1, 0, 0), make_float3(10, 0, 0), MATERIAL_GREEN_REFL)); // prava strana	
+	scene.add(Plane(make_float3(0, -1, 0), make_float3(0, 15, 0), MATERIAL_CHECKER)); // podlaha
 	scene.add(Plane(make_float3(0, 0, 1), make_float3(0, 0, -15), MATERIAL_WHITE)); // podlaha
 }
 
@@ -832,8 +832,8 @@ void initScene()
 	initMaterials();
 	initSpheres();
 	initPlanes();
-	//initCylinders();
-	//initTriangles();
+	initCylinders();
+	initTriangles();
 	initLights();
 
 	scene.getCamera()->init();
@@ -902,10 +902,10 @@ void processKeys(unsigned char key, int x, int y)
 			shiftz += 0.2f;
 		break;
 #ifdef OPT_DEPTH_OF_FIELD
-	case GLUT_KEY_UP:
+	case 'r':
 		focalLength += 0.5;
 		break;
-	case GLUT_KEY_DOWN:
+	case 't':
 		focalLength -= 0.5;
 		break;
 #endif

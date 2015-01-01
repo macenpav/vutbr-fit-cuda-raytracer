@@ -26,7 +26,7 @@ struct Camera {
 	}
 
 	__device__ Ray getRay(float u, float v) const {
-		return Ray(position, CUDA::float3_add(direction, CUDA::float3_mult(u, right), CUDA::float3_mult(v, up)));
+		return Ray(position, float3_add(direction, float3_mult(u, right), float3_mult(v, up)));
 	}
 
 	float3 position;

@@ -28,7 +28,7 @@ struct Cylinder
 
 	__device__ 
 	HitInfo intersect(Ray const& ray) {
-		const float3 c = CUDA::float3_sub(ray.origin, center);
+		const float3 c = float3_sub(ray.origin, center);
 		const float3 b = ray.direction;
 		
 		float bd = CUDA::dot(b,direction);
@@ -67,7 +67,7 @@ struct Cylinder
 	// podle http://courses.cms.caltech.edu/cs11/material/advcpp/lab7/index.html
 	__device__ float3 getNormal(float3 const& position) const {
 
-		float3 V = CUDA::float3_sub(position,center);
+		float3 V = float3_sub(position,center);
 
 		float d2 = CUDA::dot(direction, direction);
 		float dv = CUDA::dot(V, direction);
@@ -78,7 +78,7 @@ struct Cylinder
 		n.x = direction.x * y;
 		n.y = direction.y * y;
 		n.z = direction.z * y;
-		n = CUDA::float3_sub(V, n);
+		n = float3_sub(V, n);
 
 		return normalize(n);		
 	}

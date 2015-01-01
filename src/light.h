@@ -15,7 +15,7 @@ struct PointLight
 	{ position = p; color = c; }
 	
 	__device__ Ray getShadowRay(float3 const& point)
-	{ return Ray(point, CUDA::float3_sub(position, point)); }		
+	{ return Ray(point, float3_sub(position, point)); }		
 	
 	/** @brief	Light position. */
 	float3 position;

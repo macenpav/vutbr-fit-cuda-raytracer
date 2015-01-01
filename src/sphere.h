@@ -22,8 +22,8 @@ struct Sphere
 
 	__device__ HitInfo intersect(Ray const& ray) {
 		float aa = CUDA::dot(ray.direction, ray.direction);
-		float bb = 2.f * (CUDA::dot(ray.direction, CUDA::float3_sub(ray.origin, center)));
-		float cc = CUDA::dot(CUDA::float3_sub(ray.origin, center), CUDA::float3_sub(ray.origin, center)) - (radius * radius);
+		float bb = 2.f * (CUDA::dot(ray.direction, float3_sub(ray.origin, center)));
+		float cc = CUDA::dot(float3_sub(ray.origin, center), float3_sub(ray.origin, center)) - (radius * radius);
 
 		float D = bb * bb - 4 * aa * cc;
 		HitInfo hit;
@@ -49,7 +49,7 @@ struct Sphere
 	}
 
 	__device__ float3 getNormal(float3 const& position) const {
-		float3 n = CUDA::float3_sub(position, center);
+		float3 n = float3_sub(position, center);
 		return normalize(n);		
 	}
 	
