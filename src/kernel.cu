@@ -893,6 +893,14 @@ void processKeys(unsigned char key, int x, int y)
 		if (shifty > 0.2f)
 			shifty -= 0.2f;
 		break;
+	case 'q':
+		if (shiftz > -13)
+			shiftz -= 0.2f;
+		break;
+	case 'e':
+		if (shiftz < 10)
+			shiftz += 0.2f;
+		break;
 #ifdef OPT_DEPTH_OF_FIELD
 	case GLUT_KEY_UP:
 		focalLength += 0.5;
