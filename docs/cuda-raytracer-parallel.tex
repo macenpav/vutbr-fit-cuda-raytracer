@@ -124,12 +124,12 @@ unicode=true,
 Použité technologie:
 
 \begin{itemize}
-	\item NVidia CUDA 6.5, C++11
+	\item NVidia CUDA 6.5, \verb!C++!11
 	\item Microsoft Visual Studio 2013 + NVidia NSight
 	\item GLUT
 \end{itemize}
 
-Je přiložen projekt pro Visual Studio (testováno na Microsoft Visual Studio 2013). Pro samotný překlad je pak třeba mít nainstalované NVidia CUDA 6.5. a~používat překladač podporující C++11.
+Je přiložen projekt pro Visual Studio (testováno na Microsoft Visual Studio 2013). Pro samotný překlad je pak třeba mít nainstalované NVidia CUDA 6.5. a~používat překladač podporující \verb!C++!11.
 
 %---------------------------------------------------------------------------
 \section{Výsledky a~použité znalosti}
@@ -187,7 +187,7 @@ Oba Raytracery jsou implementovány rozdílně, je tak komplikované vytvořit i
 \caption{Srovnání podobně komplexních scén na raytraceru Aurelius a~CUDA raytraceru pro daný počet koulí}
 \end{table}
 
-Syntéza raytracerem Aurelius byla cca 100x pomalejší, než-li syntéza podobné scény na GPU. S~komplexností scény roste výpočet Aurelia rychleji, ale zanedbatelně.
+Syntéza raytracerem Aurelius byla cca 100x pomalejší, než-li syntéza podobné scény na GPU. S~komplexností scény se rozdíly mezi CPU a GPU verzí ještě zvětšují, ale zanedbatelně.
 
 
 \begin{figure}
@@ -209,7 +209,7 @@ Raytracer ke svému běhu potřebuje pouze informace o~scéně:
 	\item databáze primitiv (constant memory)
 \end{itemize}
 
-\paragraph{Světla, nastavení kamery a~materiály} jsou data používaná pro výpočet každého paprsku, je tedy vhodné používat constant memory, která vykazuje nejrychlejší přístupový čas a~zároveň je broadcastována pro všechna vlákna. Diskutabilní je uložení materiálu pro scény, kde jich je hodně. Constant memory je nejen omezena velikostí 64 KB, ale je i~z~důvodu broadcastu neefektivní pro scény, kde paprsky budou trefovat primitiva s~různými materiály.
+\paragraph{Světla, nastavení kamery a~materiály} jsou data používaná pro výpočet každého paprsku. Zvolili jsme proto uložení v constant memory, která vykazuje nejrychlejší přístupový čas a~zároveň je broadcastována pro všechna vlákna. Diskutabilní může být uložení materiálu pro scény, v případě velkého množství materiálu. Constant memory je nejen omezena velikostí 64 KB, ale je i~z~důvodu broadcastu neefektivní pro scény, kde paprsky budou trefovat primitiva z~různých materiálů.
 
 \paragraph{Databázi primitiv} je vhodné ukládat v~konstantní paměti z~hlediska broadcastu, ale pro scény s~více jak 500-600 primitivy se nevejdeme do max. velikosti constant memory (64 KB), což je i~omezení velikosti scény CUDA raytraceru. Šlo by využít globální paměť, což by však vedlo ke zpomalení.
 
@@ -240,7 +240,7 @@ CUDA raytracer využívá jako akcelerační struktury KD-tree a~BVH. Nejedná s
 Intuitivním přístupem je sestavit struktury na CPU a~následně vše nakopírovat na GPU. Struktury je ale možné sestavit i~na GPU, což je mnohem rychlejší. \cite{karras}
 
 \subsection{NVidia CUDA}
-Hlavní co jsme museli nastudovat jsou vědomosti ohledně technologie CUDA tedy struktura pamětí, jak je používat pomocí jejího C++ API a~v~kombinaci s~programováním na CPU.
+Hlavní co jsme museli nastudovat jsou vědomosti ohledně technologie CUDA tedy struktura pamětí, jak je používat pomocí jejího \verb!C++! API a~v~kombinaci s~programováním na CPU.
 
 K~debugování a~programování jsme následně využívali vývojové prostředí Microsoft Visual Studio 2013 s~NVidia NSight.
 
@@ -249,9 +249,11 @@ K~debugování a~programování jsme následně využívali vývojové prostřed
 %---------------------------------------------------------------------------
 \section{Ovládání vytvořeného programu}
 
-Raytracer nabízí možnost využití některých akceleračních optimalizací avšak pro tyto optimalizace je nutné raytracer znovu přeložit. Volbu provedeme pomocí podmíněného překladu za použití konstant v~souboru constatns.h. Pro BVH je nutné definovat proměnou ACC\_BVH pomocí \#define ACC\_BVH. Pro KD-Tree konstantu ACC\_KD\_TREE. Stejně jako optimalizační algoritmy je možné využít různých aplikací raytraceru (neostré  stíny -- OPT\_SOFT\_SHADOWS, hloubka ostrosti -- OPT\_DEPTH\_OF\_FIELD, automaticky pohyb kamery -- OPT\_CAMERA\_SHIFT nebo bilineární samplování -- OPT\_BILINEAR\_SAMPLING). 
+Raytracer nabízí možnost využití některých akceleračních optimalizací avšak pro tyto optimalizace je nutné raytracer znovu přeložit. Volbu provedeme pomocí podmíněného překladu za použití konstant v~souboru constatns.h. Pro BVH je nutné definovat proměnou ACC\_BVH pomocí "\#define ACC\_BVH". Pro KD-Tree konstantu ACC\_KD\_TREE. Stejně jako optimalizační algoritmy je možné využít různých aplikací raytraceru (neostré  stíny -- OPT\_SOFT\_SHADOWS, hloubka ostrosti -- OPT\_DEPTH\_OF\_FIELD, automaticky pohyb kamery -- OPT\_CAMERA\_SHIFT nebo bilineární samplování -- OPT\_BILINEAR\_SAMPLING). 
 
-V~raytraceru je možné pomocí kláves Q, W, E, A, S, D nastavit pozici kamery (A~a~D ve směru osy x, W a~S~ve směru osy y, Q a~E ve směru osy z) avšak bod, na který kamera směřuje se nezmění. Pokud je raytracer přeložen pro výpočet hloubky ostrosti je možné měnit ohniskovou vzdálenost pomocí R a T.
+V~raytraceru se nastavuje pozice kamery pomocí kláves Q, W, E, A, S, D (A~a~D ve směru osy~x, W a~S~ve směru osy~y, Q a~E ve směru osy~z) avšak bod, na který kamera směřuje se nezmění. Pokud raytracer přeložíte pro výpočet hloubky ostrosti můžete měnit ohniskovou vzdálenost pomocí R a T.
+
+Komplexnější scény zapsané ve formátu OBJ je možné v~ratraceru zobrazit tak, že soubor s~koncovkou obj vložíme do složky, ze které raytracer spouštíme.  
 
 
 %---------------------------------------------------------------------------
@@ -260,8 +262,8 @@ V~raytraceru je možné pomocí kláves Q, W, E, A, S, D nastavit pozici kamery 
 Oba jsme pracovali na všem, nicméně specializovali jsme se následovně:
 
 \begin{itemize}
-\item \textbf{Jan Bureš}: Phongův osvětlovací model, úprava bilineární interpolace, hloubka ostrosti, měkké stíny, válec, trojúhelník, rovina, především raytracing-části raytraceru \dots
-\item \textbf{Pavel Macenauer}: Základní kostra programu, optimalizace využitých paměťových jednotek, základ pro bilineární interpolaci, načítání formátu OBJ, akcelerační struktury, především CUDA-části raytraceru \dots
+\item \textbf{Jan Bureš}: Phongův osvětlovací model, úprava bilineární interpolace, hloubka ostrosti, měkké stíny, válec, trojúhelník, rovina, především raytracing-části raytraceru\dots
+\item \textbf{Pavel Macenauer}: Základní kostra programu, optimalizace využitých paměťových jednotek, základ pro bilineární interpolaci, načítání formátu OBJ, akcelerační struktury, především CUDA-části raytraceru\dots
 \end{itemize}
 
 %---------------------------------------------------------------------------
@@ -270,12 +272,12 @@ Oba jsme pracovali na všem, nicméně specializovali jsme se následovně:
 \begin{itemize}
 \item \textbf{Jan Bureš}: Na celé práci bylo asi nejsložitější upravit algoritmus sledování paprsku tak, aby fungoval na architektuře CUDA. Dále pak správné rozdělení vláken do warpů a~rozhodnout, který druh paměti použít pro které proměnné. Mnoho času bylo zapotřebí také věnovat rekurzi, kterou by sice CUDA měla podporovat od verze 3.0, ovšem stále program havaroval kvůli přetečení zásobníku.
 
-\item \textbf{Pavel Macenauer}:  Celkové zprovoznění CUDA a navázání na OpenGL + následné vykreslení. To především proto, že dokumentace a~materiály jsou především v~podobě vygenerované dokumentace od společnosti NVidia a materiálů na internetu k této tématice moc není. Dále i parsování souboru OBJ a navkládání jednotlivých trojúhelníku do paměti.
+\item \textbf{Pavel Macenauer}:  Celkové zprovoznění CUDA a navázání na OpenGL + následné vykreslení. To především proto, že dokumentace a~materiály jsou především v~podobě vygenerované dokumentace od společnosti NVidia a~materiálů na internetu k~této tématice moc není. Dále i~parsování souboru OBJ a~vkládání jednotlivých trojúhelníku do paměti.
 \end{itemize}
 %---------------------------------------------------------------------------
 \section{Zkušenosti získané řešením projektu}
 
-Naučili jsme se více o~architektuře CUDA, získali představu o~psaní paralelních algoritmů a optimalizovali značně rychlost výpočtu. Zdokonalili jsme raytracer do podoby, kdy již nevykresluje jen koule, ale i komplexnější scény, odráží paprsky. Optimalizovali jsme rychl, vyzkoušeli si implementovat phongův osvětlovací model a~raytracer v~praxi. Prostudovali možné algoritmické optimalizace raytraceru a~některé z~nich implementovali.
+Naučili jsme se více o~architektuře CUDA, získali představu o~psaní paralelních algoritmů a~optimalizovali značně rychlost výpočtu. Zdokonalili jsme raytracer do podoby, kdy již nevykresluje jen koule, ale i~komplexnější scény, odráží paprsky. Optimalizovali jsme rychlost, vyzkoušeli si implementovat phongův osvětlovací model a~raytracer v~praxi. Prostudovali možné algoritmické optimalizace raytraceru a~některé z~nich implementovali.
 
 
 %---------------------------------------------------------------------------
@@ -302,17 +304,17 @@ Od začátku jsme komunikovali ohledně podmínek spolupráce. Následné progra
 
 \paragraph{Celkový dojem (90\%):} 
 
-S raytracingem se setkáváme ve více předmětech, proto jsme projekt kombinovali i s předmětem PGP, pro který byly implementovány akcelerační struktury. Celý projekt už je celkem komplexní a jednoznačně nad rámec jednoho předmětu. Nejedná se již o jednoduchý GPU raytracer, ale raytracer schopný vykreslovat různé druhy primitiv, modely, využívá různé druhy akcelerace a má naimplementovány i vizuální vychytávky.
+S~raytracingem se setkáváme ve více předmětech, proto jsme projekt kombinovali i~s~předmětem PGP, pro který byly implementovány akcelerační struktury. Celý projekt už je celkem komplexní a~jednoznačně nad rámec jednoho předmětu. Nejedná se již o~jednoduchý GPU raytracer, ale raytracer schopný vykreslovat různé druhy primitiv, modely, využívá různé druhy akcelerace a~rozšiřující vizuální aplikace.
 
-Projekt je celkově zajímavý tím, že se jedná o komplexní raytracer, který se postupně formuje do podoby raytracingového enginu/frameworku. Na rozdíl od velkého množství projektů, které zmizí v propadlišti dějin, se jedná o práci, která by i mohla zaujmout své jedinečné místo na internetu.
+Projekt je celkově zajímavý tím, že se jedná o~komplexní raytracer, který se postupně formuje do podoby raytracingového enginu/frameworku. Na rozdíl od velkého množství projektů, které zmizí v propadlišti dějin, se jedná o~práci, která by i~mohla zaujmout své jedinečné místo na internetu.
 
 
 %---------------------------------------------------------------------------
 \section{Doporučení pro budoucí zadávání projektů}
 
 \begin{itemize}
-	\item Zveřejnit zadání pro projekty již od 1. týdne - umožní to nastudovat tématiku dopředu a vytvořit tak prostor pro diskuzi na přednáškách. Navíc na začátku semestru je nejvíce času, dále pak jsou úkoly, půlsemestrální písemky a je možné se vyhnout práci na poslední chvíli.
-	\item Kostry pro jednotlivé projekty. Některé projekty se zpracovávají během let opakovaně. Určitě by tak pro ně šlo vytvořit kostry (něco jako pro domácí úkoly), které by umožňovali odstranit onu část vše rozchodit, nainstalovat, napsat základy a věnovat se komplexnějším věcem. Umožnilo by to i lehčí kontrolu pro vyučující.
+	\item Zveřejnit zadání pro projekty již od 1. týdne - umožní to nastudovat tématiku dopředu a~vytvořit tak prostor pro diskuzi na přednáškách. Navíc na začátku semestru je nejvíce času, dále pak jsou úkoly, půlsemestrální písemky a~je možné se vyhnout práci na poslední chvíli.
+	\item Kostry pro jednotlivé projekty. Některé projekty se zpracovávají během let opakovaně. Určitě by tak pro ně šlo vytvořit kostry (něco jako pro domácí úkoly), které by umožňovali odstranit onu část vše rozchodit, nainstalovat, napsat základy a~věnovat se komplexnějším věcem. Umožnilo by to i~lehčí kontrolu pro vyučující.
 \end{itemize}
 
 %---------------------------------------------------------------------------
