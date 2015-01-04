@@ -57,68 +57,56 @@
 		\frametitle{Obsah}	
 		
 		\begin{itemize}
-			\item WebGL
-			\begin{itemize}
-				\item Charakteristika
-				\item Podpora v prohlížečích
-				\item Historie
-				\item Budoucnost
-				\item Bezpečnost a IE11				
-			\end{itemize}
-			\item Alternativy kreslení na webu a srovnání s WebGL
-			\item Přehled knihoven a herních enginů
-			\item Emscripten
+			\item Co náš raytracer umí?
+			\item Použité technologie
+			\item Rozvržení paměti
+			\item Paralelizace
+			\item Nápady na optimalizaci
+			\item Srovnání s CPU			
 		\end{itemize}			
 				
 	\end{frame}
 	
-%% -----------------------------
 
-
-	{
-\usebackgroundtemplate{\includegraphics[width=\paperwidth]{img/example.pdf}}
-\begin{frame}[plain]
-\end{frame}
-}
 	
 	%% -----------------------------
 	
 	\begin{frame}[t,fragile]
-		\frametitle{WebGL - charakteristika}
+		\frametitle{Co náš raytracer umí?}
 		
 		\begin{itemize}
-			\item OpenGL na webových stránkách \\
-				\footnotesize{nízkoúrovňové API pro práci s grafikou}
-			\item \large{Vykreslováno v HTML5 elementu} \verb|<canvas>|
-			\item \large{Khronos Group} \\
-				\footnotesize{má na starosti specifikaci, členové jsou např. Google, Mozzila, Opera}
-			\item \large{OpenGL ES 2.0 (WebGL 1.0.2) a OpenGL ES 3.0 (WebGL 2.0)}
-			\item Dnes již podporováno ve všech běžně používaných prohlížečích
+			\item Jednoduchá primitiva \\
+				\footnotesize{Koule, válec, rovina, trojúhelník}
+			\item Phongův osvětlovací model
+			\item Různé materiály (barva, lesk, \dots) včetně procedurální textury
+			\item Načítání modelů ve formátu OBJ			
+			\item Další vizuální vylepšení \\
+			   \footnotesize{neostré stíny, hloubka ostrosti}			   
+			\item akcelerace BVH, KD-tree
 		\end{itemize}		
 		
 	\end{frame}
 
 
+%% -----------------------------
 
+
+	{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth]{img/complex.png}}
+\begin{frame}[plain]
+\end{frame}
+}
 	
 %% ------------------------------
 
 	\begin{frame}[t,fragile]
-		\frametitle{Podpora WebGL k listopadu 2014}
+		\frametitle{Použité technologie}
 		
-		\linebreak
-		
-		\centering
-		\begin{figure}		
-		\includegraphics[width=110mm]{img/webglsupport.png}
-		\end{figure}
-		\textcolor{ggreen}{plně podporováno} \\
-		\textcolor{gred}{nepodporováno} \\
-		\textcolor{glime}{částečně podporováno} *
-		
-	
-		\flushleft
-* \footnotesize{prohlížeče vyžadují konkrétní verze driverů, WebGL tak není podporováno na všech zařízeních}
+		\begin{itemize}
+			\item NVidia CUDA 6.5, \verb!C++11!
+			\item Microsoft Visual Studio 2013 + NVidia NSight
+			\item GLUT, GLEW
+		\end{itemize}	
 			
 
 	\end{frame}
@@ -126,78 +114,67 @@
 		%% --------------------------
 
 	\begin{frame}[t,fragile]
-		\frametitle{Historie}					
+		\frametitle{Rozvržení paměti}					
 		\begin{itemize}
-	    	\item \textbf{2006} – Vladimir Vukićević - první prototyp
-			\item \textbf{2007} – Mozzila Firefox a Opera podporují WebGL
-			\item \textbf{2009} – Khronos group 
-			\item \textbf{2011} – Oficiální specifikace WebGL 1.0
-			\item \textbf{2013} – Specifikace WebGL 2.0
-		\end{itemize}	
+	\item světla (constant memory)
+	\item nastavení kamery (constant memory)
+	\item informace o~materiálech (constant memory)
+	\item databáze primitiv (constant memory - \textit{???})
+\end{itemize}
 		
-		\begin{figure}		
-			\includegraphics[width=30mm]{img/vukicevic.jpg}
-			\caption{Vladimir Vukićević na Mozzila konferenci v Kanadě}
-		\end{figure}
-		
+	
 	\end{frame}
 	
 	%% --------------------------
 	
 		\begin{frame}[t,fragile]
-		\frametitle{Budoucnost}					
-		\begin{itemize}
-			\item OpenGL ES 3.1
-			\begin{itemize}
-				\item nepřímé vykreslovací příkazy
-				\item výpočetní shadery
-				\item vylepšené GLSL, texturovací funkcionalita, volitelná rozšíření, \dots
-			\end{itemize}
-			\item WebGL v mobilních prohlížečích
-			\item Stále více uplatňováno v každodenních projektech
-		\end{itemize}	
-		
-		\vspace{-3mm}				
-		
-		\begin{figure}
-		\centering\begin{tabular}{ll}
-			\includegraphics[height=28mm]{img/london.jpg} &		
-			\includegraphics[height=28mm]{img/tokyo.jpg}
-		\end{tabular}		
-		\caption{3D obrázky z Google Maps - Londýn (vlevo), Tokyo (vpravo)}
-		\end{figure}
-									
+		\frametitle{Paralelizace}	
+				\vspace{15mm}				
+
+\large
+Pro každý pixel syntetizovaného obrazu se vyšle paprsek -- vytvoří vlákno a~to vypočte výslednou barvu (včetně odrazů a~stínů).
+
+
+								
 	\end{frame}	
 	
 	%% --------------------------
 	
 	\begin{frame}[t,fragile]
-		\frametitle{Podpora IE 11}					
-		\begin{itemize}
-	    	\item \textbf{2011} – Microsoft oznamuje, že nebude podporovat WebGL
-			\item \textbf{2013} – Microsoft oznamuje podporu WebGL v IE11 \\
-			\footnotesize{běh WebGL zabalen do DirectX runtimu}		
-		\end{itemize}	
-		
+		\frametitle{Nápady na optimalizaci}
 		\vspace{15mm}
-		\centering
-		\Huge{Co ho k tomu vedlo?}
-		
-		
+		\begin{itemize}
+	    	\item Odraz paprsku - nečekat až skončí, ale po každé rekurzi alokovat znovu vlákna
+			\item Akcelerační struktury přímo na GPU
+		\end{itemize}					
 		
 	\end{frame}
 	
 %% --------------------------
 
 	\begin{frame}[t,fragile]
-		\frametitle{Bezpečnostní rizika}					
+		\frametitle{Testovací scéna}					
+		
 		\begin{itemize}
-			\item Undefined behaviour - např. čtení pixelů mimo framebuffer
-			\item Přístup do nealokované paměti
-			\item Shadery - shadery musí být validovány
-			\item DoS (scéna trvá moc dlouho vykreslit - počítač přestane reagovat)
-			\item Čtení obrázků a videí z cizích zdrojů - musí být validováno přes CORS	
-		\end{itemize}	
+	\item počet rovin: \textbf{6}
+	\item počet koulí: \textbf{5, 10, 20, 50, 100, 500}
+	\item hardware: \textbf{NVidia Quadro K1000M, Intel Core i7-3610QM 2.3 GHz}
+\end{itemize}
+
+	\begin{figure}[htbp]
+        \centering
+
+        \begin{subfigure}[b]{0.49\textwidth}
+                \includegraphics[width=\textwidth]{img/test-scene.png}
+                \caption{\scriptsize{CUDA}}
+        \end{subfigure}   
+        \begin{subfigure}[b]{0.49\textwidth}
+                \includegraphics[width=\textwidth]{img/test-scene-aurelius.png}
+                \caption{\scriptsize{Aurelius}}
+
+        \end{subfigure}
+        
+        \end{figure}
 
 	\end{frame}
 	
@@ -207,124 +184,42 @@
 		%% --------------------------
 	
 		\begin{frame}[t,fragile]
-		\frametitle{Alternativy ke kreslení na webu}					
-		\begin{itemize}
-		
-		\item \textbf{DOM}
-		\begin{itemize}
-			\item objekty ukládáný přímo do DOMu (stromu) webové stránky jako objekty (rect, circle, \textcolor{red}{svg}, path, ...)
-			\item velmi rychlé při malém počtu objektů, ale postupně zahlcuje DOM
-			\item možnost vázat handlery na jednotlivé objekty
-		\end{itemize}
+		\frametitle{Výsledky}					
+		\small
+		\begin{table}
+\centering
+\begin{tabular}{ | l | l | l | l | l | l | l |}
+\hline
+\textbf{Počet koulí} & 5  & 10  & 20 & 50 & 100 & 500 \\
+\hline
+\textbf{CUDA} [s] & 0,0193 & 0,0195 & 0,0224 & 0,0341 & 0,05521 & 0,2197 \\
+\hline
+\textbf{Aurelius} [s] & 0,905 & 1,233 & 1,779 & 3,541 & 6,505 & 30,373 \\
+\hline
+\end{tabular}
+\caption{Srovnání podobně komplexních scén na raytraceru Aurelius a~CUDA raytraceru pro daný počet koulí}
+\end{table}
 
-		\item \textbf{Canvas}
-		\begin{itemize}
-			\item API elementu \verb|<canvas>|
-			\item kreslení pomocí JS metod (např. arc(), fill(), lineTo(), \dots)
-			\item problém vázat handlery na jednotlivé objekty, protože vše je uvnitř \verb|<canvas>|-u
-		\end{itemize}				
-				
-		\end{itemize}	
+Syntéza raytracerem Aurelius byla cca 100x pomalejší, než-li syntéza podobné scény na GPU. S~komplexností scény se rozdíly mezi CPU a GPU verzí ještě zvětšují.
 
 	\end{frame}
 	
 		%% --------------------------
 		
 				{
-\usebackgroundtemplate{\includegraphics[width=\paperwidth]{img/example2.pdf}}
+\usebackgroundtemplate{\includegraphics[width=\paperwidth]{img/srovnani.png}}
 \begin{frame}[plain]
 \end{frame}
 }
 
-		%% -----------------------------
-	
-		\begin{frame}[t,fragile]
-		\frametitle{Přehled knihoven a herních enginů}					
-		\begin{itemize}
-		
-		\item \textbf{Construct 2} (komerční pro komerční účely)
-		\begin{itemize}
-			\item 2D editor, jednoduché, časově nenáročné
-			\item export pro HTML5, Chrome, Facebook, Windows Phone, přes wrappery jako Cocoon JS lze i pro Android nebo iOS
-		\end{itemize}				
-		\item \textbf{Three.js} (zdarma)
-		\begin{itemize}
-			\item 3D knihovna nad WebGL, ale využívá i Canvas/DOM fallback
-			\item umí všechno možné			
-		\end{itemize}				
-		\item \textbf{pixi.js} (zdarma)
-		\begin{itemize}
-			\item 2D knihovna, ale má i Canvas fallback, Scene Graph
-			\item WebGL postprocessing filtry, podpora více dotyků
-			\item využívají i velké společnosti jako Google nebo McDonalds		
-		\end{itemize}						
-		\item \textbf{Isogenic} (komerční)
-		\begin{itemize}
-			\item client-server herní engine na masivně hrané multiplayer hry
-			\item node.js, MongoDB, na kreslení využívá pouze DOM/Canvas a jednoduché metody		
-		\end{itemize}				
-		\end{itemize}	
-
-	\end{frame}
-	
-	%% -----------------------------
-	
-		\begin{frame}[t,fragile]
-		\frametitle{O3D}					
-		\begin{itemize}
-		
-		\item Engine pro 3D aplikace (Graf scény, textury, shadery, …)
-		\item \textbf{2009} – Google jako plugin
-		\item \textbf{2010} – Jako Javascript vrstva nad WebGL
-		\item dnes se již nevyužívá, větší popularitu získalo three.js
-		\end{itemize}	
-
-	\end{frame}
-	
-	
-	%% -----------------------------
-	
-		\begin{frame}[t,fragile]
-		\frametitle{Další knihovny}					
-		\begin{itemize}
-				\item enchant.js \url{http://enchantjs.com/}
-	\item PlayCanvas \url{https://playcanvas.com/}
-	\item Phaser \url{http://phaser.io/}
-	\item voxel.js \url{http://voxeljs.com/}
-		\end{itemize}	
-
-	\end{frame}
-	
-	%% -----------------------------
-	
-		\begin{frame}[t,fragile]
-		\frametitle{Emscripten}					
-		\begin{itemize}
-			\item převod LLVM (výstup z C/C++ compileru) na JavaScript nebo asm.js
-			\item asm.js - subjazyk javascriptu optimalizovaný pro cross-kompilaci
-			\item podpora OpenGL, SDL
-			\item DeadTrigger 2 (Unity 3D), Quake 3, Doom, Qt, Ruby, Python \dots
-		\end{itemize}	
-		\begin{figure}		
-		\centering
-		\includegraphics[height=40mm]{img/micro3b.png}
-		\end{figure}
-
-	\end{frame}
-	
-	%% -----------------------------
-		
 	\begin{frame}[t,fragile]
-	
-		\frametitle{Zajímavé zdroje}					
-		\begin{itemize}
-			\item \footnotesize{\url{http://kripken.github.io/mloc_emscripten_talk/#/}}
-			\item \url{http://learningwebgl.com/}
-			\item \url{http://www.chromeexperiments.com/webgl/}
-			\item \url{https://www.shadertoy.com/}
-		\end{itemize}			
 
+		\vspace{30mm}
+\centering
+\Huge Děkujeme za pozornost.\\ Otázky?
+						
+		
 	\end{frame}
-	
+
 	
 \end{document} 
